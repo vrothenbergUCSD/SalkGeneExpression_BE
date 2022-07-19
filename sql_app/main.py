@@ -23,8 +23,8 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(dependencies=[Depends(get_db)])
 
 origins = [
-    #"http://localhost.tiangolo.com",
-    #"https://localhost.tiangolo.com",
+    # "http://localhost.tiangolo.com",
+    # "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:3000",
 ]
@@ -40,21 +40,3 @@ app.add_middleware(
 app.include_router(gene_expression_routes.router)
 app.include_router(gene_metadata_routes.router)
 app.include_router(sample_metadata_routes.router)
-
-# # Dependency
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-
-# @app.get("/")
-# def root():
-#     return {"message" : "Hello world"}
-
-
-
-# @app.get("/top_genes/")
-# async def get_top_genes(limit: int = 100, table: str = 'mouse_trf_2018_liver_top_genes', db: Session = Depends(get_db)):
-#     return fetch.get_top_genes(limit, table, db)

@@ -8,47 +8,83 @@ from dependencies import get_db
 
 router = APIRouter()
 
-@router.get("/gene_expression/range/")
-async def get_gene_expression_data_by_range(hi: float = 100000, lo: float = 0, skip: int = 0, limit: int = 100, table: str = 'mouse_trf_2018_liver_gene_expression_data', db: Session = Depends(get_db)):
-    """Returns filtered list of gene expression data, if averaged expression value across replicates is between hi and lo.
+
+@router.get("/gene_expression/range")
+async def get_gene_expression_data_by_range(
+    hi: float = 100000,
+    lo: float = 0,
+    skip: int = 0,
+    limit: int = 100,
+    table: str = "mouse_trf_2018_liver_gene_expression_data",
+    db: Session = Depends(get_db),
+):
+    """Returns filtered list of gene expression data, if averaged expression
+        value across replicates is between hi and lo.
 
     Args:
-        hi (float): Upper bound of average gene expression value. Defaults to 100000.
-        lo (float): Lower bound of average gene expression value. Defaults to 0.
-        skip (int, optional): Number of rows to skip. Defaults to 0.
-        limit (int, optional): Maximum number of rows to return. Defaults to 100.
-        table (str, optional): Name of table in database. Defaults to 'mouse_trf_2018_liver_gene_expression_data'.
-        db (Session, optional): Session instance of database. Defaults to Depends(get_db).
+        hi (float): Upper bound of average gene expression value.
+            Defaults to 100000.
+        lo (float): Lower bound of average gene expression value.
+            Defaults to 0.
+        skip (int, optional): Number of rows to skip.
+            Defaults to 0.
+        limit (int, optional): Maximum number of rows to return.
+            Defaults to 100.
+        table (str, optional): Name of table in database.
+            Defaults to 'mouse_trf_2018_liver_gene_expression_data'.
+        db (Session, optional): Session instance of database.
+            Defaults to Depends(get_db).
 
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return fetch.gene_expression.get_gene_expression_data_by_range(hi, lo, skip, limit, table, db)
+    return fetch.gene_expression.get_gene_expression_data_by_range(
+        hi, lo, skip, limit, table, db
+    )
+
 
 @router.get("/gene_expression/gene_name")
-async def get_gene_expression_data_by_gene_name(gene_name: str, table: str = 'mouse_trf_2018_liver_gene_expression_data', db: Session = Depends(get_db)):
+async def get_gene_expression_data_by_gene_name(
+    gene_name: str,
+    table: str = "mouse_trf_2018_liver_gene_expression_data",
+    db: Session = Depends(get_db),
+):
     """Returns filtered list of gene expression data, if gene_name in gene_names.
 
     Args:
         gene_name (str): List of gene names in string format e.g. Alb,Serpina3k
-        table (str, optional): Name of table in database. Defaults to 'mouse_trf_2018_liver_gene_expression_data'.
-        db (Session, optional): Session instance of database. Defaults to Depends(get_db).
+        table (str, optional): Name of table in database.
+            Defaults to 'mouse_trf_2018_liver_gene_expression_data'.
+        db (Session, optional): Session instance of database.
+            Defaults to Depends(get_db).
 
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return fetch.gene_expression.get_gene_expression_data_by_gene_name(gene_name, table, db)
+    return fetch.gene_expression.get_gene_expression_data_by_gene_name(
+        gene_name, table, db
+    )
+
 
 @router.get("/gene_expression/sample_name")
-async def get_gene_expression_data_by_sample_name(sample_name: str, table: str = 'mouse_trf_2018_liver_gene_expression_data', db: Session = Depends(get_db)):
+async def get_gene_expression_data_by_sample_name(
+    sample_name: str,
+    table: str = "mouse_trf_2018_liver_gene_expression_data",
+    db: Session = Depends(get_db),
+):
     """Returns filtered list of gene expression data, if sample_name in sample_names.
 
     Args:
-        sample_name (str): List of sample names in string format e.g. ALF_ZT0-1,TRF_ZT10-2
-        table (str, optional): Name of table in database. Defaults to 'mouse_trf_2018_liver_gene_expression_data'.
-        db (Session, optional): Session instance of database. Defaults to Depends(get_db).
+        sample_name (str): List of sample names in string format
+            e.g. ALF_ZT0-1,TRF_ZT10-2
+        table (str, optional): Name of table in database.
+            Defaults to 'mouse_trf_2018_liver_gene_expression_data'.
+        db (Session, optional): Session instance of database.
+            Defaults to Depends(get_db).
 
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return fetch.gene_expression.get_gene_expression_data_by_sample_name(sample_name, table, db)
+    return fetch.gene_expression.get_gene_expression_data_by_sample_name(
+        sample_name, table, db
+    )
