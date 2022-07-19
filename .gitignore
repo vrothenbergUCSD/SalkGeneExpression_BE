@@ -1,1 +1,4 @@
 sql_app/*.db
+sql_app/__pycache__/
+sql_app/routers/__pycache__/
+sql_app/fetch/__pycache__/
