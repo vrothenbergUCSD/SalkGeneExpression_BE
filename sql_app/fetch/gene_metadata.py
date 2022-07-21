@@ -1,7 +1,12 @@
-from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
+from google.cloud import bigquery
+
+client = bigquery.Client()
+
+db = "rbio-p-datasharing.gene_expression_database"
 
 
-def get_gene_metadata(limit: str, table: str, db: Session):
+def get_gene_metadata(limit: str, table: str):
     """Returns unfiltered list of gene metadata.
 
     Args:
@@ -12,11 +17,13 @@ def get_gene_metadata(limit: str, table: str, db: Session):
     Returns:
         list: List of gene metadata JSON row objects from database
     """
-    statement = f"SELECT * FROM {table} LIMIT {limit}"
-    return db.execute(statement).all()
+    QUERY = f"""SELECT * FROM `{db}.{table}` LIMIT {limit}"""
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
 
 
-def get_gene_metadata_by_gene_name(gene_names: str, table: str, db: Session):
+def get_gene_metadata_by_gene_name(gene_names: str, table: str):
     """Returns filtered list of gene metadata, if gene_name in gene_names.
 
     Args:
@@ -28,11 +35,14 @@ def get_gene_metadata_by_gene_name(gene_names: str, table: str, db: Session):
         list: List of gene metadata JSON row objects from database
     """
     gene_name_strs = ",".join([f"'{gene_name}'" for gene_name in gene_names.split(",")])
-    statement = f"SELECT * FROM {table} WHERE gene_name IN ({gene_name_strs})"
-    return db.execute(statement).all()
+    QUERY = f"""SELECT * FROM `{db}.{table}` 
+                WHERE gene_name IN ({gene_name_strs})"""
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
 
 
-def get_gene_metadata_by_chr(chrs: str, limit: int, table: str, db: Session):
+def get_gene_metadata_by_chr(chrs: str, limit: int, table: str):
     """Returns filtered list of gene metadata, if chr in chrs.
 
     Args:
@@ -45,5 +55,8 @@ def get_gene_metadata_by_chr(chrs: str, limit: int, table: str, db: Session):
         list: List of gene metadata JSON row objects from database
     """
     chr_strs = ",".join([f"'{chr}'" for chr in chrs.split(",")])
-    statement = "SELECT * FROM {table} WHERE chr IN ({chr_strs}) LIMIT {limit}"
-    return db.execute(statement).all()
+    QUERY = f"""SELECT * FROM `{db}.{table}` 
+                WHERE chr IN ({chr_strs}) LIMIT {limit}"""
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)

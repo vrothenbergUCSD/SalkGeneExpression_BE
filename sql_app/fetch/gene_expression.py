@@ -1,8 +1,13 @@
-from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
+from google.cloud import bigquery
+
+client = bigquery.Client()
+
+db = "rbio-p-datasharing.gene_expression_database"
 
 
 def get_gene_expression_data_by_range(
-    hi: int, lo: int, skip: int, limit: int, table: str, db: Session
+    hi: int, lo: int, skip: int, limit: int, table: str
 ):
     """Returns filtered list of gene expression data, if averaged expression
         value across replicates is between hi and lo.
@@ -18,14 +23,16 @@ def get_gene_expression_data_by_range(
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    statement = f"""SELECT gene_name, group_name, time_point, 
-    AVG(gene_expression) AS gene_expression FROM {table} GROUP BY gene_name, 
+    QUERY = f"""SELECT gene_name, group_name, time_point, 
+    AVG(gene_expression) AS gene_expression FROM `{db}.{table}` GROUP BY gene_name, 
     group_name, time_point HAVING AVG(gene_expression) > {lo} AND
     AVG(gene_expression) < {hi} LIMIT {limit}"""
-    return db.execute(statement).all()
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
 
 
-def get_gene_expression_data_by_gene_name(gene_names: str, table: str, db: Session):
+def get_gene_expression_data_by_gene_name(gene_names: str, table: str):
     """Returns filtered list of gene expression data, if gene_name in gene_names.
 
     Args:
@@ -38,13 +45,16 @@ def get_gene_expression_data_by_gene_name(gene_names: str, table: str, db: Sessi
         list: List of gene expression JSON row objects from database
     """
     gene_name_strs = ",".join([f"'{gene_name}'" for gene_name in gene_names.split(",")])
-    statement = f"""SELECT gene_name, group_name, time_point, AVG(gene_expression) 
-    AS gene_expression FROM {table} WHERE gene_name IN ({gene_name_strs}) 
+    QUERY = f"""SELECT gene_name, group_name, time_point, 
+    AVG(gene_expression) AS gene_expression 
+    FROM `{db}.{table}` WHERE gene_name IN ({gene_name_strs}) 
     GROUP BY gene_name, group_name, time_point"""
-    return db.execute(statement).all()
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
 
 
-def get_gene_expression_data_by_sample_name(sample_names: str, table: str, db: Session):
+def get_gene_expression_data_by_sample_name(sample_names: str, table: str):
     """Returns filtered list of gene expression data, if sample_name in sample_names.
 
     Args:
@@ -59,7 +69,9 @@ def get_gene_expression_data_by_sample_name(sample_names: str, table: str, db: S
     sample_names_strs = ",".join(
         [f"'{sample_name}'" for sample_name in sample_names.split(",")]
     )
-    statement = f"""SELECT gene_name, group_name, time_point, AVG(gene_expression) 
-    AS gene_expression FROM {table} WHERE sample_name IN ({sample_names_strs}) 
+    QUERY = f"""SELECT gene_name, group_name, time_point, AVG(gene_expression) 
+    AS gene_expression FROM `{db}.{table}` WHERE sample_name IN ({sample_names_strs}) 
     GROUP BY gene_name, group_name, time_point"""
-    return db.execute(statement).all()
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
