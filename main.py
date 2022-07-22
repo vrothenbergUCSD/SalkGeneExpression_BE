@@ -19,11 +19,10 @@ from routers import gene_expression_routes, gene_metadata_routes, sample_metadat
 app = FastAPI()
 
 origins = [
-    # "http://localhost.tiangolo.com",
-    # "https://localhost.tiangolo.com",
-    "http://localhost",
-    "http://localhost:3000",
-    "http://localhost:4173",
+    "*",
+    # "http://localhost",
+    # "http://localhost:3000",
+    # "http://localhost:4173",
 ]
 
 app.add_middleware(
