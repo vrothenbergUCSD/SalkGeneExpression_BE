@@ -1,16 +1,11 @@
-from typing import List
-
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from yaml import parse
 
-# import fetch
-import models
+# import models
 
-from database import SessionLocal, engine
+# from database import SessionLocal, engine
 
-from dependencies import get_db
+# from dependencies import get_db
 
 # import routers.gene_expression_routes as gene_expression_routes
 # import routers.gene_metadata_routes as gene_metadata_routes
@@ -18,15 +13,17 @@ from dependencies import get_db
 
 from routers import gene_expression_routes, gene_metadata_routes, sample_metadata_routes
 
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(dependencies=[Depends(get_db)])
+# app = FastAPI(dependencies=[Depends(get_db)])
+app = FastAPI()
 
 origins = [
     # "http://localhost.tiangolo.com",
     # "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:3000",
+    "http://localhost:4173",
 ]
 
 app.add_middleware(

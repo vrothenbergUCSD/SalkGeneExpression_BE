@@ -2,3 +2,7 @@ sql_app/*.db
 sql_app/__pycache__/
 sql_app/routers/__pycache__/
 sql_app/fetch/__pycache__/
+
+.DS_Store
+sql_app/.DS_Store
+rbio-p-datasharing-5769f835e4b8.json
