@@ -15,7 +15,7 @@ async def get_gene_expression_data_by_range(
     lo: float = 0,
     skip: int = 0,
     limit: int = 100,
-    table: str = "Mouse_TRF_2018_Liver_gene_sample_data",
+    table: str = "Mouse_TRF_2018_Liver_gene_expression_data",
     # db: Session = Depends(get_db),
 ):
     """Returns filtered list of gene expression data, if averaged expression
@@ -31,7 +31,7 @@ async def get_gene_expression_data_by_range(
         limit (int, optional): Maximum number of rows to return.
             Defaults to 100.
         table (str, optional): Name of table in database.
-            Defaults to 'Mouse_TRF_2018_Liver_gene_sample_data'.
+            Defaults to 'Mouse_TRF_2018_Liver_gene_expression_data'.
         db (Session, optional): Session instance of database.
             Defaults to Depends(get_db).
 
@@ -46,7 +46,7 @@ async def get_gene_expression_data_by_range(
 @router.get("/gene_expression/gene_name")
 async def get_gene_expression_data_by_gene_name(
     gene_name: str,
-    table: str = "Mouse_TRF_2018_Liver_gene_sample_data",
+    table: str = "Mouse_TRF_2018_Liver_gene_expression_data",
     # db: Session = Depends(get_db),
 ):
     """Returns filtered list of gene expression data, if gene_name in gene_names.
@@ -54,7 +54,7 @@ async def get_gene_expression_data_by_gene_name(
     Args:
         gene_name (str): List of gene names in string format e.g. Alb,Serpina3k
         table (str, optional): Name of table in database.
-            Defaults to 'Mouse_TRF_2018_Liver_gene_sample_data'.
+            Defaults to 'Mouse_TRF_2018_Liver_gene_expression_data'.
         db (Session, optional): Session instance of database.
             Defaults to Depends(get_db).
 
@@ -69,7 +69,7 @@ async def get_gene_expression_data_by_gene_name(
 @router.get("/gene_expression/sample_name")
 async def get_gene_expression_data_by_sample_name(
     sample_name: str,
-    table: str = "Mouse_TRF_2018_Liver_gene_sample_data",
+    table: str = "Mouse_TRF_2018_Liver_gene_expression_data",
     # db: Session = Depends(get_db),
 ):
     """Returns filtered list of gene expression data, if sample_name in sample_names.
@@ -78,7 +78,7 @@ async def get_gene_expression_data_by_sample_name(
         sample_name (str): List of sample names in string format
             e.g. ALF_ZT0-1,TRF_ZT10-2
         table (str, optional): Name of table in database.
-            Defaults to 'Mouse_TRF_2018_Liver_gene_sample_data'.
+            Defaults to 'Mouse_TRF_2018_Liver_gene_expression_data'.
         db (Session, optional): Session instance of database.
             Defaults to Depends(get_db).
 

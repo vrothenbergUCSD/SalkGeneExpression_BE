@@ -9,6 +9,12 @@ from app.routers import (
 
 app = FastAPI()
 
+
+@app.get("/")
+def home():
+    return {"message": "Health Check Passed!"}
+
+
 origins = [
     "*",
 ]
