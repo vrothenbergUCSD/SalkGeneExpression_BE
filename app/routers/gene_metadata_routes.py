@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 # from sqlalchemy.orm import Session
 
-import fetch.gene_metadata
+import app.fetch.gene_metadata
 
 # from dependencies import get_db
 
@@ -28,7 +28,7 @@ async def get_gene_metadata(
     Returns:
         list: List of gene metadata JSON row objects from database
     """
-    return fetch.gene_metadata.get_gene_metadata(limit, table)
+    return app.fetch.gene_metadata.get_gene_metadata(limit, table)
 
 
 @router.get("/gene_metadata/gene_name")
@@ -49,7 +49,7 @@ async def get_gene_metadata_by_gene_name(
     Returns:
         list: List of gene metadata JSON row objects from database
     """
-    return fetch.gene_metadata.get_gene_metadata_by_gene_name(gene_name, table)
+    return app.fetch.gene_metadata.get_gene_metadata_by_gene_name(gene_name, table)
 
 
 @router.get("/gene_metadata/chr")
@@ -73,4 +73,4 @@ async def get_gene_metadata_by_chr(
     Returns:
         list: List of gene metadata JSON row objects from database
     """
-    return fetch.gene_metadata.get_gene_metadata_by_chr(chr, limit, table)
+    return app.fetch.gene_metadata.get_gene_metadata_by_chr(chr, limit, table)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 # from sqlalchemy.orm import Session
 
-import fetch.gene_expression
+import app.fetch.gene_expression
 
 # from dependencies import get_db
 
@@ -38,7 +38,7 @@ async def get_gene_expression_data_by_range(
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return fetch.gene_expression.get_gene_expression_data_by_range(
+    return app.fetch.gene_expression.get_gene_expression_data_by_range(
         hi, lo, skip, limit, table
     )
 
@@ -61,7 +61,9 @@ async def get_gene_expression_data_by_gene_name(
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return fetch.gene_expression.get_gene_expression_data_by_gene_name(gene_name, table)
+    return app.fetch.gene_expression.get_gene_expression_data_by_gene_name(
+        gene_name, table
+    )
 
 
 @router.get("/gene_expression/sample_name")
@@ -83,6 +85,6 @@ async def get_gene_expression_data_by_sample_name(
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return fetch.gene_expression.get_gene_expression_data_by_sample_name(
+    return app.fetch.gene_expression.get_gene_expression_data_by_sample_name(
         sample_name, table
     )

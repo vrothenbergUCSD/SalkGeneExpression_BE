@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 # from sqlalchemy.orm import Session
 
-import fetch.sample_metadata
+import app.fetch.sample_metadata
 
 # from dependencies import get_db
 
@@ -28,7 +28,7 @@ async def get_sample_metadata(
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    return fetch.sample_metadata.get_sample_metadata(limit, table)
+    return app.fetch.sample_metadata.get_sample_metadata(limit, table)
 
 
 @router.get("/sample_metadata/sample_name")
@@ -50,7 +50,9 @@ async def get_sample_metadata_by_sample_name(
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    return fetch.sample_metadata.get_sample_metadata_by_sample_name(sample_name, table)
+    return app.fetch.sample_metadata.get_sample_metadata_by_sample_name(
+        sample_name, table
+    )
 
 
 @router.get("/sample_metadata/group_name")
@@ -71,7 +73,9 @@ async def get_sample_metadata_by_group_name(
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    return fetch.sample_metadata.get_sample_metadata_by_group_name(group_name, table)
+    return app.fetch.sample_metadata.get_sample_metadata_by_group_name(
+        group_name, table
+    )
 
 
 @router.get("/sample_metadata/time_point")
@@ -94,7 +98,9 @@ async def get_sample_metadata_by_time_point(
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    return fetch.sample_metadata.get_sample_metadata_by_time_point(time_point, table)
+    return app.fetch.sample_metadata.get_sample_metadata_by_time_point(
+        time_point, table
+    )
 
 
 @router.get("/sample_metadata/gender")
@@ -115,7 +121,7 @@ async def get_sample_metadata_by_gender(
     Returns:
         list: List of sample metadata JSON row objects from database.
     """
-    return fetch.sample_metadata.get_sample_metadata_by_gender(gender, table)
+    return app.fetch.sample_metadata.get_sample_metadata_by_gender(gender, table)
 
 
 @router.get("/sample_metadata/tissue")
@@ -136,4 +142,4 @@ async def get_sample_metadata_by_tissue(
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    return fetch.sample_metadata.get_sample_metadata_by_tissue(tissue, table)
+    return app.fetch.sample_metadata.get_sample_metadata_by_tissue(tissue, table)

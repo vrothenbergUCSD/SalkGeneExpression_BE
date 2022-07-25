@@ -1,28 +1,16 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# import models
+from app.routers import (
+    gene_expression_routes,
+    gene_metadata_routes,
+    sample_metadata_routes,
+)
 
-# from database import SessionLocal, engine
-
-# from dependencies import get_db
-
-# import routers.gene_expression_routes as gene_expression_routes
-# import routers.gene_metadata_routes as gene_metadata_routes
-# import routers.sample_metadata_routes as sample_metadata_routes
-
-from routers import gene_expression_routes, gene_metadata_routes, sample_metadata_routes
-
-# models.Base.metadata.create_all(bind=engine)
-
-# app = FastAPI(dependencies=[Depends(get_db)])
 app = FastAPI()
 
 origins = [
     "*",
-    # "http://localhost",
-    # "http://localhost:3000",
-    # "http://localhost:4173",
 ]
 
 app.add_middleware(
