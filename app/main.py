@@ -12,7 +12,7 @@ app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"message": "Health Check Passed! Test."}
+    return {"message": "Health Check Passed! Test.."}
 
 
 origins = [
