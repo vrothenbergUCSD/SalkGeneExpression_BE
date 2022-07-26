@@ -9,6 +9,11 @@ import app.fetch.gene_expression
 router = APIRouter()
 
 
+@router.get("/")
+def home():
+    return {"message": "Health Check Passed!"}
+
+
 @router.get("/gene_expression/range")
 async def get_gene_expression_data_by_range(
     hi: float = 100000,

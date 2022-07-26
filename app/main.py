@@ -1,5 +1,7 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
 
 from app.routers import (
     gene_expression_routes,
@@ -11,7 +13,6 @@ app = FastAPI()
 
 
 origins = [
-    # "*",
     "https://rbio-p-datasharing.web.app",
     "https://rbio-p-datasharing.web.app/*",
 ]
@@ -24,11 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+allowed_hosts = [
+    "https://rbio-p-datasharing.web.app",
+]
 
-@app.get("/")
-def home():
-    return {"message": "Health Check Passed! Test.."}
-
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=allowed_hosts,
+)
 
 app.include_router(gene_expression_routes.router)
 app.include_router(gene_metadata_routes.router)
