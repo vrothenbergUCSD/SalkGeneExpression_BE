@@ -10,14 +10,10 @@ from app.routers import (
 app = FastAPI()
 
 
-@app.get("/")
-def home():
-    return {"message": "Health Check Passed! Test.."}
-
-
 origins = [
     # "*",
-    "https://rbio-p-datasharing.web.app/",
+    "https://rbio-p-datasharing.web.app",
+    "https://rbio-p-datasharing.web.app/*",
 ]
 
 app.add_middleware(
@@ -27,6 +23,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def home():
+    return {"message": "Health Check Passed! Test.."}
+
 
 app.include_router(gene_expression_routes.router)
 app.include_router(gene_metadata_routes.router)
