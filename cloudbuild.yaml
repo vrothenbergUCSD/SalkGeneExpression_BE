@@ -1,0 +1,19 @@
+ steps:
+ # build the container image
+ - name: 'gcr.io/cloud-builders/docker'
+   args: ['build', '-t', 'gcr.io/rbio-p-datasharing/github.com/vrothenbergucsd/salkgeneexpression_be:$COMMIT_SHA', '.']
+ # push the container image to Container Registry
+ - name: 'gcr.io/cloud-builders/docker'
+   args: ['push', 'gcr.io/rbio-p-datasharing/github.com/vrothenbergucsd/salkgeneexpression_be:$COMMIT_SHA']
+ # Deploy container image to Cloud Run
+ - name: 'gcr.io/cloud-builders/gcloud'
+   args:
+   - 'run'
+   - 'deploy'
+   - 'github.com/vrothenbergucsd/salkgeneexpression_be'
+   - '--image'
+   - 'gcr.io/rbio-p-datasharing/github.com/vrothenbergucsd/salkgeneexpression_be:$COMMIT_SHA'
+   - '--region'
+   - '[REGION]'
+ images:
+ - 'gcr.io/rbio-p-datasharing/github.com/vrothenbergucsd/salkgeneexpression_be:$COMMIT_SHA'
