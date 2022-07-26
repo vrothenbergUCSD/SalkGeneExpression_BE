@@ -16,7 +16,8 @@ def home():
 
 
 origins = [
-    "*",
+    # "*",
+    "https://rbio-p-datasharing.web.app/",
 ]
 
 app.add_middleware(
