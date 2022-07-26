@@ -26,8 +26,8 @@ app.add_middleware(
 )
 
 allowed_hosts = [
-    "https://rbio-p-datasharing.web.app",
-    "https://rbio-p-datasharing.web.app/*",
+    "rbio-p-datasharing.web.app",
+    "*.rbio-p-datasharing.web.app",
 ]
 
 app.add_middleware(
