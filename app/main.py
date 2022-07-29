@@ -8,6 +8,7 @@ from app.routers import (
     gene_expression_routes,
     gene_metadata_routes,
     sample_metadata_routes,
+    database_metadata_routes,
 )
 
 app = FastAPI()
@@ -40,3 +41,4 @@ app.add_middleware(
 app.include_router(gene_expression_routes.router)
 app.include_router(gene_metadata_routes.router)
 app.include_router(sample_metadata_routes.router)
+app.include_router(database_metadata_routes.router)

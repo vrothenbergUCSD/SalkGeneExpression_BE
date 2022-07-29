@@ -1,10 +1,6 @@
-from fastapi import APIRouter, Depends
-
-# from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
 import app.fetch.sample_metadata
-
-# from dependencies import get_db
 
 router = APIRouter()
 
