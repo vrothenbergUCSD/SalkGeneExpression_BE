@@ -1,5 +1,6 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 
 # from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
@@ -32,11 +33,6 @@ app.add_middleware(
 #     "rbio-p-datasharing.web.app",
 #     "*.rbio-p-datasharing.web.app",
 # ]
-
-# app.add_middleware(
-#     TrustedHostMiddleware,
-#     allowed_hosts=allowed_hosts,
-# )
 
 app.include_router(gene_expression_routes.router)
 app.include_router(gene_metadata_routes.router)

@@ -23,6 +23,24 @@ def get_gene_metadata(limit: str, table: str):
     return list(rows)
 
 
+def get_gene_metadata_names(limit: int, table: str):
+    """Returns unfiltered list of gene names.
+
+    Args:
+        limit (str): Maximum number of rows to return
+        table (str): Name of table in database
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+
+    QUERY = f"""SELECT gene_name FROM `{db}.{table}` 
+                LIMIT {limit}"""
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
+
+
 def get_gene_metadata_by_gene_name(gene_names: str, table: str):
     """Returns filtered list of gene metadata, if gene_name in gene_names.
 
