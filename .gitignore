@@ -7,3 +7,6 @@ __pycache__/
 rbio-p-datasharing-5769f835e4b8.json
 
 .vscode
+
+*.csv
+*.ipynb
