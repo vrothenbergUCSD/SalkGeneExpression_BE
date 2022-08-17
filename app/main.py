@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # from fastapi_utils.timing import add_timing_middleware
 
-
 # logging.basicConfig(level=logging.INFO)
 # logger = logging.getLogger(__name__)
 
