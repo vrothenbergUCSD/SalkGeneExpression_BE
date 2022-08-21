@@ -11,12 +11,12 @@ router = APIRouter()
 
 @router.get("/gene_metadata/names")
 async def get_gene_metadata_names(
-    limit: int = 100, table: str = "Mouse_TRF_2018_Liver_gene_metadata"
+    limit: int = 50000, table: str = "Mouse_TRF_2018_Liver_gene_metadata"
 ):
     """Returns unfiltered list of gene names.
 
     Args:
-        limit (int, optional): _description_. Defaults to 100.
+        limit (int, optional): _description_. Defaults to 50000.
         table (str, optional): _description_. Defaults to "Mouse_TRF_2018_Liver_gene_metadata".
 
     Returns:

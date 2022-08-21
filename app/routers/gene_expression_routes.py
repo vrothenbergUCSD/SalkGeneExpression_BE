@@ -48,9 +48,9 @@ async def get_gene_expression_data_by_range(
     )
 
 
-@router.get("/gene_expression/gene_name")
-async def get_gene_expression_data_by_gene_name(
-    gene_name: str,
+@router.get("/gene_expression/gene_names")
+async def get_gene_expression_data_by_gene_names(
+    gene_names: str,
     table: str = "Mouse_TRF_2018_Liver_gene_expression_data",
     # db: Session = Depends(get_db),
 ):
@@ -66,9 +66,27 @@ async def get_gene_expression_data_by_gene_name(
     Returns:
         list: List of gene expression JSON row objects from database
     """
-    return app.fetch.gene_expression.get_gene_expression_data_by_gene_name(
-        gene_name, table
+    return app.fetch.gene_expression.get_gene_expression_data_by_gene_names(
+        gene_names, table
     )
+
+
+@router.get("/gene_expression/gene_id")
+async def get_gene_expression_data_by_gene_id(
+    gene_id: str,
+    table: str = "Mouse_TRF_2018_Liver_gene_expression_data",
+):
+    """Returns filtered list of gene expression data for one gene_id
+
+    Args:
+        gene_id (str): List of gene names in string format e.g. Alb
+        table (str, optional): Name of table in database.
+            Defaults to 'Mouse_TRF_2018_Liver_gene_expression_data'.
+
+    Returns:
+        list: List of gene expression JSON row objects from database
+    """
+    return app.fetch.gene_expression.get_gene_expression_data_by_gene_id(gene_id, table)
 
 
 @router.get("/gene_expression/sample_name")

@@ -32,7 +32,7 @@ def get_gene_expression_data_by_range(
     return list(rows)
 
 
-def get_gene_expression_data_by_gene_name(gene_names: str, table: str):
+def get_gene_expression_data_by_gene_names(gene_names: str, table: str):
     """Returns filtered list of gene expression data, if gene_name in gene_names.
 
     Args:
@@ -45,10 +45,29 @@ def get_gene_expression_data_by_gene_name(gene_names: str, table: str):
         list: List of gene expression JSON row objects from database
     """
     gene_name_strs = ",".join([f"'{gene_name}'" for gene_name in gene_names.split(",")])
-    QUERY = f"""SELECT gene_name, group_name, time_point, 
-    AVG(gene_expression) AS gene_expression 
-    FROM `{db}.{table}` WHERE gene_name IN ({gene_name_strs}) 
-    GROUP BY gene_name, group_name, time_point"""
+    QUERY = f"""SELECT * 
+    FROM `{db}.{table}` 
+    WHERE gene_id IN ({gene_name_strs})"""
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)
+
+
+def get_gene_expression_data_by_gene_id(gene_id: str, table: str):
+    """Returns filtered list of gene expression data for one gene_id.
+
+    Args:
+        gene_id (str): Gene name in string format
+            e.g. Alb
+        table (str): Name of table in database
+
+    Returns:
+        list: List of gene expression JSON row objects from database
+    """
+    # gene_name_strs = ",".join([f"'{gene_name}'" for gene_name in gene_names.split(",")])
+    QUERY = f"""SELECT *
+    FROM `{db}.{table}`
+    WHERE gene_id = {gene_id}"""
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
     return list(rows)
