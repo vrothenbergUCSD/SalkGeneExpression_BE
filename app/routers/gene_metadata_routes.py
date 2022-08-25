@@ -9,8 +9,8 @@ import app.fetch.gene_metadata
 router = APIRouter()
 
 
-@router.get("/gene_metadata/names")
-async def get_gene_metadata_names(
+@router.get("/gene_metadata/all_names")
+async def get_gene_metadata_all_names(
     limit: int = 50000, table: str = "Mouse_TRF_2018_Liver_gene_metadata"
 ):
     """Returns unfiltered list of gene names.
@@ -22,7 +22,7 @@ async def get_gene_metadata_names(
     Returns:
         list: List of gene metadata JSON row objects from database
     """
-    return app.fetch.gene_metadata.get_gene_metadata_names(limit, table)
+    return app.fetch.gene_metadata.get_gene_metadata_all_names(limit, table)
 
 
 @router.get("/gene_metadata/data")
@@ -63,6 +63,25 @@ async def get_gene_metadata_by_gene_name(
         list: List of gene metadata JSON row objects from database
     """
     return app.fetch.gene_metadata.get_gene_metadata_by_gene_name(gene_name, table)
+
+
+@router.get("/gene_metadata/gene_id")
+async def get_gene_metadata_by_gene_id(
+    gene_id: str,
+    table: str = "Mouse_TRF_2018_Liver_gene_metadata",
+    # db: Session = Depends(get_db),
+):
+    """Returns filtered list of gene metadata, if gene_id in gene_id string of ids.
+
+    Args:
+        gene_id (str): List of gene ids in string format e.g. Alb,Serpina3k
+        table (str, optional): Name of table in database.
+            Defaults to 'Mouse_TRF_2018_Liver_gene_metadata'.
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+    return app.fetch.gene_metadata.get_gene_metadata_by_gene_name(gene_id, table)
 
 
 @router.get("/gene_metadata/chr")

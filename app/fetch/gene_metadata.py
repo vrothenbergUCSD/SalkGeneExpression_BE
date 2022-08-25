@@ -23,8 +23,8 @@ def get_gene_metadata(limit: str, table: str):
     return list(rows)
 
 
-def get_gene_metadata_names(limit: int, table: str):
-    """Returns unfiltered list of gene names.
+def get_gene_metadata_all_names(limit: int, table: str):
+    """Returns unfiltered list of gene names only.
 
     Args:
         limit (str): Maximum number of rows to return
@@ -57,6 +57,25 @@ def get_gene_metadata_by_gene_name(gene_names: str, table: str):
                 WHERE gene_name IN ({gene_name_strs})"""
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
+    return list(rows)
+
+
+def get_gene_metadata_by_gene_id(gene_ids: str, table: str):
+    """Returns filtered list of gene metadata, if gene_id in gene_ids.
+
+    Args:
+        gene_ids (str): List of gene names in string format e.g. Alb,Serpina3k
+        table (str): Name of table in database
+        db (Session): Session instance of database
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+    gene_id_strs = ",".join([f"'{gene_id}'" for gene_id in gene_ids.split(",")])
+    QUERY = f"""SELECT * FROM `{db}.{table}` 
+                WHERE gene_id IN ({gene_id_strs})"""
+    query_job = client.query(QUERY)
+    rows = query_job.result()
     return list(rows)
 
 
