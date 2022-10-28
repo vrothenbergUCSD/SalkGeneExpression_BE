@@ -5,6 +5,7 @@ Upload functions
 import csv
 import codecs
 import time
+import asyncio
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -13,6 +14,8 @@ from google.cloud import bigquery as bq
 from app.models.dataset_models import GeneMetadataTable
 from app.models.dataset_models import SampleMetadataTable
 from app.models.dataset_models import GeneExpressionDataTable
+
+import app.fetch.database_metadata
 
 client = bq.Client()
 
@@ -67,7 +70,7 @@ def post_gene_expression_data(file):
     return list(csvReader)
 
 
-def table_exists(table_id):
+async def table_exists(table_id):
     try:
         client.get_table(table_id)  # Make an API request.
         print("TABLE EXISTS!", table_id)
@@ -230,7 +233,6 @@ def create_gene_expression_data_table(table_id: str):
     ]
 
     try:
-
         table = bq.Table(table_id, schema=schema)
         table.clustering_fields = ["gene_id", "sample_name"]
         table = client.create_table(table)  # Make an API request.
@@ -271,6 +273,27 @@ async def upload_gene_expression_data_table(
     return errors
 
 
+async def delete_data_table_rows(table_id: str):
+    """Delete all the rows from a specified table in the database.
+    Used to clear out a table when overwriting with new data.
+
+    Args:
+        table_id (str): Table name to be cleared out from BigQuery database.
+        e.g. 'TRF_2018_Mouse_Lung_gene_expression_data_UCb0eBc2ewPjv9ipwLaEUYSwdhh1'
+
+    Returns:
+        list[str]: List of errors, if any.
+    """
+
+    print("delete_data_table_rows")
+
+    QUERY = f"""DELETE FROM `{DB}.{table_id}` WHERE true"""
+    query_job = client.query(QUERY)  # API request
+    errors = query_job.result()  # Waits for query to finish
+
+    return errors
+
+
 async def post_dataset_metadata(metadata):
     """Posts dataset metadata information as a single row to datasets_metadata table.
 
@@ -284,6 +307,24 @@ async def post_dataset_metadata(metadata):
     print("upload.post_dataset_metadata")
     table_id = f"{DB}.datasets_metadata"
     errors = client.insert_rows_json(table_id, [metadata.dict()])
+    return errors
+
+
+async def delete_dataset_metadata(metadata):
+    """Delete entry from datasets_metadata table which matches metadata object.
+
+    Args:
+        metadata (DatasetMetadata): Pydantic metadata object.
+
+    Returns:
+        errors List[str]: List of errors, if any.
+    """
+    QUERY = f"""DELETE FROM `{DB}`.datasets_metadata WHERE
+    gene_metadata_table_name = `{metadata.gene_metadata_table_name}`
+    AND sample_metadata_table_name = `{metadata.sample_metadata_table_name}`
+    AND gene_expression_data_table_name = `{metadata.gene_expression_data_table_name}`"""
+    query_job = client.query(QUERY)
+    errors = query_job.result()
     return errors
 
 
@@ -318,9 +359,27 @@ async def post_dataset(
     # print(gene_metadata_table_id)
     # print(sample_metadata_table_id)
     # print(gene_expression_data_table_id)
-    create_gene_metadata_table(gene_metadata_table_id)
-    create_sample_metadata_table(sample_metadata_table_id)
-    create_gene_expression_data_table(gene_expression_data_table_id)
+
+    already_exists = False
+
+    # Check if entry in metadata table exists
+    result = app.fetch.database_metadata.get_datasets_metadata_by_table_name(
+        gene_metadata_table_id
+    )
+    if len(result):
+        already_exists = True
+        print("already_exists")
+        print(result)
+
+    if not table_exists(gene_metadata_table_id):
+        await create_gene_metadata_table(gene_metadata_table_id)
+
+    if not table_exists(sample_metadata_table_id):
+        await create_sample_metadata_table(sample_metadata_table_id)
+
+    if not table_exists(gene_expression_data_table_id):
+        await create_gene_expression_data_table(gene_expression_data_table_id)
+
     gene_metadata_list = list(
         csv.DictReader(codecs.iterdecode(gene_metadata_file.file, "utf-8-sig"))
     )
@@ -339,14 +398,35 @@ async def post_dataset(
     gene_expression_data = gene_expression_data_pydantic(gene_expression_data_list)
     print("gene_expression_data", len(gene_expression_data), type(gene_expression_data))
 
-    errorLog += await upload_gene_metadata_table(gene_metadata, gene_metadata_table_id)
-    errorLog += await upload_sample_metadata_table(
-        sample_metadata, sample_metadata_table_id
+    if already_exists:
+        # Delete entry in datasets_metadata table, clear tables
+        errorLog += await asyncio.gather(
+            [
+                delete_dataset_metadata(metadata),
+                delete_data_table_rows(metadata.gene_metadata_table_name),
+                delete_data_table_rows(metadata.sample_metadata_table_name),
+                delete_data_table_rows(metadata.gene_expression_data_table_name),
+            ]
+        )
+
+    errorLog += await asyncio.gather(
+        [
+            upload_gene_metadata_table(gene_metadata, gene_metadata_table_id),
+            upload_sample_metadata_table(sample_metadata, sample_metadata_table_id),
+            upload_gene_expression_data_table(
+                gene_expression_data, gene_expression_data_table_id
+            ),
+            post_dataset_metadata(metadata),
+        ]
     )
-    errorLog += await upload_gene_expression_data_table(
-        gene_expression_data, gene_expression_data_table_id
-    )
-    errorLog += await post_dataset_metadata(metadata)
+    # errorLog += await upload_gene_metadata_table(gene_metadata, gene_metadata_table_id)
+    # errorLog += await upload_sample_metadata_table(
+    #     sample_metadata, sample_metadata_table_id
+    # )
+    # errorLog += await upload_gene_expression_data_table(
+    #     gene_expression_data, gene_expression_data_table_id
+    # )
+    # errorLog += await post_dataset_metadata(metadata)
 
     return {
         "gene_metadata_table_id": gene_metadata_table_id,
@@ -354,3 +434,18 @@ async def post_dataset(
         "gene_expression_data_table_id": gene_expression_data_table_id,
         "errorLog": errorLog,
     }
+
+
+@app.post("/login", include_in_schema=False)
+async def login(request: Request):
+    req_json = await request.json()
+    email = req_json["email"]
+    password = req_json["password"]
+    try:
+        user = pb.auth().sign_in_with_email_and_password(email, password)
+        jwt = user["idToken"]
+        return JSONResponse(content={"token": jwt}, status_code=200)
+    except:
+        return HTTPException(
+            detail={"message": "There was an error logging in"}, status_code=400
+        )
