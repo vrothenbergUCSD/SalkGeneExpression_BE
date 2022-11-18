@@ -11,7 +11,7 @@ import firebase_admin
 import pyrebase
 import json
 
-from firebase_admin import credentials, auth, firestore
+from firebase_admin import credentials, firestore
 
 # from fastapi_utils.timing import add_timing_middleware
 
@@ -32,7 +32,6 @@ from app.routers import (
 )
 
 app = FastAPI()
-
 
 origins = [
     "*",

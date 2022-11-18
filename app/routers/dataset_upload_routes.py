@@ -1,39 +1,29 @@
-# # Authentication libraries
-# import firebase_admin
-# import pyrebase as pb
-# import json
-from firebase_admin import credentials, auth, firestore
+#  Authentication libraries
+from firebase_admin import auth
+
 from app.main import pb, fs
-
-
-# import os
 
 from fastapi import APIRouter, File, UploadFile, Form, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-
-# import JSON
 
 from typing import List
 
 import app.post.upload
 from app.models.dataset_models import DatasetMetadata
 
-
-# cred = firebase_admin.credentials.Certificate(os.getenv("FIREBASE_AUTH_KEY"))
-# firebase = firebase_admin.initialize_app(cred)
-# pb = pyrebase.initialize_app(json.load(open(os.getenv("FIREBASE_CONFIG"))))
-
 router = APIRouter()
 
 
 @router.post("/upload/dataset")
 async def post_dataset(
+    authorization: str = Form(),
     metadata: DatasetMetadata = Depends(DatasetMetadata.as_form),
     gene_metadata_filename: str = Form(),
     sample_metadata_filename: str = Form(),
     gene_expression_data_filename: str = Form(),
     files: List[UploadFile] = File(None),
+    replace: str = Form(),
 ):
     """Uploads entire dataset and its associated metadata to BigQuery.
     If dataset already exists, overwrites it.
@@ -49,28 +39,65 @@ async def post_dataset(
         _type_: _description_
     """
     print("/upload/dataset: post_dataset")
+    try:
+        user = auth.verify_id_token(authorization)
+        if not user:
+            print("No User")
+            return HTTPException(
+                detail={
+                    "message": "Failed token check. Invalid user. " + str(e),
+                },
+                status_code=400,
+            )
 
-    gene_metadata_file = [
-        file for file in files if file.filename == gene_metadata_filename
-    ][0]
-    sample_metadata_file = [
-        file for file in files if file.filename == sample_metadata_filename
-    ][0]
-    gene_expression_data_file = [
-        file for file in files if file.filename == gene_expression_data_filename
-    ][0]
+        user_level = "user"
+        doc = fs.collection("admins").document(user["uid"]).get()
+        if doc.exists:
+            user_level = "admin"
+        else:
+            doc = fs.collection("uploaders").document(user["uid"]).get()
+            if doc.exists:
+                user_level = "uploader"
+            else:
+                return HTTPException(
+                    detail={
+                        "message": "Invalid token permissions.",
+                    },
+                    status_code=400,
+                )
 
-    return await app.post.upload.post_dataset(
-        metadata=metadata,
-        gene_metadata_file=gene_metadata_file,
-        sample_metadata_file=sample_metadata_file,
-        gene_expression_data_file=gene_expression_data_file,
-    )
+        gene_metadata_file = [
+            file for file in files if file.filename == gene_metadata_filename
+        ][0]
+        sample_metadata_file = [
+            file for file in files if file.filename == sample_metadata_filename
+        ][0]
+        gene_expression_data_file = [
+            file for file in files if file.filename == gene_expression_data_filename
+        ][0]
+        replace = bool(replace)
+
+        return await app.post.upload.post_dataset(
+            metadata=metadata,
+            gene_metadata_file=gene_metadata_file,
+            sample_metadata_file=sample_metadata_file,
+            gene_expression_data_file=gene_expression_data_file,
+            replace=replace,
+        )
+
+    except Exception as e:
+        print("Exception", e)
+        return HTTPException(
+            detail={
+                "message": "There was an error validating the token. " + str(e),
+            },
+            status_code=400,
+        )
 
 
 @router.post("/login_test", include_in_schema=True)
 async def login_test(request: Request):
-    # print("login_test")
+    print("login_test")
     req_json = await request.json()
     # print(req_json)
     email = req_json["email"]
@@ -95,15 +122,17 @@ async def test(request: Request):
 @router.post("/ping", include_in_schema=True)
 async def validate(
     authorization: str = Form(),
-    # metadata: DatasetMetadata = Depends(DatasetMetadata.as_form),
-    # gene_metadata_filename: str = Form(),
-    # sample_metadata_filename: str = Form(),
-    # gene_expression_data_filename: str = Form(),
-    # files: List[UploadFile] = File(None),
+    metadata: DatasetMetadata = Depends(DatasetMetadata.as_form),
+    gene_metadata_filename: str = Form(),
+    sample_metadata_filename: str = Form(),
+    gene_expression_data_filename: str = Form(),
+    files: List[UploadFile] = File(None),
 ):
     # headers = request.headers
     # jwt = headers.get("authorization")
     # jwt = authorization
+    print("validate")
+    print(authorization)
     print(f"Auth Token: {authorization}")
     try:
         user = auth.verify_id_token(authorization)
@@ -118,19 +147,23 @@ async def validate(
 
         print("user")
         print(user)
+        user_level = "user"
 
-        # print(fs.collection("admins"))
-
-        # all_user_ids = fs.collection("admins").shallow().get()
-        # print(all_user_ids)
-        # print()
-        # # doc = doc_ref.get()
-        doc = fs.document("admin", user["uid"])
-        if doc:
+        doc = fs.collection("admins").document(user["uid"]).get()
+        if doc.exists:
             # Is admin
             print("Admin")
+            print(doc.id)
+            user_level = "admin"
         else:
             print("Not admin")
+            doc = fs.collection("uploaders").document(user["uid"]).get()
+            if doc.exists:
+                print("Uploader")
+                print(doc.id)
+                user_level = "uploader"
+            else:
+                print("Not uploader")
 
             # Fail
 
@@ -147,9 +180,10 @@ async def validate(
         resp_json = {
             "message": "Successful",
             "uid": user["uid"],
-            # "gene_metadata_filename": gene_metadata_filename,
-            # "sample_metadata_filename": sample_metadata_filename,
-            # "gene_expression_data_filename": gene_expression_data_filename,
+            "user_level": user_level,
+            "gene_metadata_filename": gene_metadata_filename,
+            "sample_metadata_filename": sample_metadata_filename,
+            "gene_expression_data_filename": gene_expression_data_filename,
             # "metadata": metadata,
         }
 
@@ -181,5 +215,7 @@ async def signup(request: Request):
             content={"message": f"Successfully created user {user.uid}"},
             status_code=200,
         )
-    except:
-        return HTTPException(detail={"message": "Error Creating User"}, status_code=400)
+    except Exception as e:
+        return HTTPException(
+            detail={"message": "Error Creating User. " + str(e)}, status_code=400
+        )

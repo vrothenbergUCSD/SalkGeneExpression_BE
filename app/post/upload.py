@@ -119,12 +119,12 @@ def create_gene_metadata_table(table_id: str):
                 table.project, table.dataset_id, table.table_id
             )
         )
-        return True
+        return []
     except Exception as error:
         print("Error on create_gene_metadata_table")
         print(error)
         # print(Conflict)
-        return False
+        return [False]
 
     # errors = client.insert_rows_json(table_id, data)
     # return errors
@@ -162,7 +162,7 @@ def create_sample_metadata_table(table_id: str):
         bq.SchemaField("species", "STRING", mode="REQUIRED"),
         bq.SchemaField("time_point", "STRING", mode="REQUIRED"),
         bq.SchemaField("group_name", "STRING", mode="REQUIRED"),
-        bq.SchemaField("age_years", "FLOAT64", mode="REQUIRED"),
+        bq.SchemaField("age_months", "INT64", mode="REQUIRED"),
         bq.SchemaField("gender", "STRING", mode="REQUIRED"),
         bq.SchemaField("tissue", "STRING", mode="REQUIRED"),
         bq.SchemaField("number_of_replicates", "INT64", mode="REQUIRED"),
@@ -180,12 +180,12 @@ def create_sample_metadata_table(table_id: str):
                 table.project, table.dataset_id, table.table_id
             )
         )
-        return True
+        return []
     except Exception as error:
         print("Error on create_sample_metadata_table")
         print(error)
         # print(Conflict)
-        return False
+        return [False]
     # errors = client.insert_rows_json(table_id, data)
     # return errors
 
@@ -241,11 +241,11 @@ def create_gene_expression_data_table(table_id: str):
                 table.project, table.dataset_id, table.table_id
             )
         )
-        return True
+        return []
     except Exception as error:
         print("Error on create_gene_expression_data_table")
         print(error)
-        return False
+        return [False]
 
 
 async def upload_gene_expression_data_table(
@@ -273,7 +273,7 @@ async def upload_gene_expression_data_table(
     return errors
 
 
-async def delete_data_table_rows(table_id: str):
+async def replace_data_table_rows(table_id: str):
     """Delete all the rows from a specified table in the database.
     Used to clear out a table when overwriting with new data.
 
@@ -285,7 +285,7 @@ async def delete_data_table_rows(table_id: str):
         list[str]: List of errors, if any.
     """
 
-    print("delete_data_table_rows")
+    print("replace_data_table_rows")
 
     QUERY = f"""DELETE FROM `{DB}.{table_id}` WHERE true"""
     query_job = client.query(QUERY)  # API request
@@ -294,6 +294,7 @@ async def delete_data_table_rows(table_id: str):
     return errors
 
 
+# TODO: Check if updating existing metadata
 async def post_dataset_metadata(metadata):
     """Posts dataset metadata information as a single row to datasets_metadata table.
 
@@ -310,21 +311,32 @@ async def post_dataset_metadata(metadata):
     return errors
 
 
-async def delete_dataset_metadata(metadata):
-    """Delete entry from datasets_metadata table which matches metadata object.
+async def delete_dataset_metadata(
+    old_gene_metadata_table_name,
+    old_sample_metadata_table_name,
+    old_gene_expression_data_table_name,
+):
+    """Delete dataset metadata information row from datasets_metadata table.
 
     Args:
-        metadata (DatasetMetadata): Pydantic metadata object.
+        old_gene_metadata_table_name (str)
+        old_sample_metadata_table_name (str)
+        old_gene_expression_data_table_name (str)
 
     Returns:
-        errors List[str]: List of errors, if any.
+        list[str]: List of errors, if any.
     """
-    QUERY = f"""DELETE FROM `{DB}`.datasets_metadata WHERE
-    gene_metadata_table_name = `{metadata.gene_metadata_table_name}`
-    AND sample_metadata_table_name = `{metadata.sample_metadata_table_name}`
-    AND gene_expression_data_table_name = `{metadata.gene_expression_data_table_name}`"""
-    query_job = client.query(QUERY)
-    errors = query_job.result()
+
+    print("upload.delete_dataset_metadata")
+    QUERY = f"""DELETE `{DB}.datasets_metadata`  
+    WHERE gene_metadata_table_name = '{old_gene_metadata_table_name}'
+    AND sample_metadata_table_name = '{old_sample_metadata_table_name}'
+    AND gene_expression_data_table_name = '{old_gene_expression_data_table_name}'
+    """
+
+    query_job = client.query(QUERY)  # API request
+    errors = query_job.result()  # Waits for query to finish
+
     return errors
 
 
@@ -333,6 +345,7 @@ async def post_dataset(
     gene_metadata_file,
     sample_metadata_file,
     gene_expression_data_file,
+    replace,
 ):
     """Validates gene metadata, sample metadata and gene expression data files.
     Creates tables in BigQuery for each CSV file.
@@ -352,37 +365,89 @@ async def post_dataset(
     print("upload.post_dataset")
     errorLog = []
     owner = metadata.owner
+    if type(replace) != bool:
+        replace = replace(bool)
+
+    print("Checking if exists")
+    # Check if entry in metadata table exists
+    result = app.fetch.database_metadata.get_datasets_metadata_by_table_name(
+        metadata.gene_metadata_table_name
+    )
+
+    already_exists = len(result) > 0
+    print("Already exists: ", already_exists)
+    if already_exists:
+        print("Already exists")
+        if replace:
+            print("Replacing")
+            # Replace table name suffixes
+            old_gene_metadata_table_name = metadata.gene_metadata_table_name
+            metadata.gene_metadata_table_name = replace_suffix(
+                old_gene_metadata_table_name
+            )
+            old_sample_metadata_table_name = metadata.sample_metadata_table_name
+            metadata.sample_metadata_table_name = replace_suffix(
+                old_sample_metadata_table_name
+            )
+            old_gene_expression_data_table_name = (
+                metadata.gene_expression_data_table_name
+            )
+            metadata.gene_expression_data_table_name = replace_suffix(
+                old_gene_expression_data_table_name
+            )
+
+            # Check all valid names
+            if not (
+                metadata.gene_metadata_table_name
+                and metadata.sample_metadata_table_name
+                and metadata.gene_expression_data_table_name
+            ):
+
+                errorLog += [
+                    "Error on table names.  If replacing, existing table must have __n suffix."
+                ]
+                return {"errorLog": errorLog}
+
+            # Delete old metadata table row
+            errorLog += await delete_dataset_metadata(
+                old_gene_metadata_table_name,
+                old_sample_metadata_table_name,
+                old_gene_expression_data_table_name,
+            )
+
+        else:
+            print("Table already exists.  Set replace to 1.")
+            errorLog += "Table already exists. Set replace to 1."
+            return {"errorLog": errorLog}
+
+    print("Setting table IDs")
     gene_metadata_table_id = f"{DB}.{metadata.gene_metadata_table_name}"
     sample_metadata_table_id = f"{DB}.{metadata.sample_metadata_table_name}"
     gene_expression_data_table_id = f"{DB}.{metadata.gene_expression_data_table_name}"
-    # print("owner", owner)
-    # print(gene_metadata_table_id)
-    # print(sample_metadata_table_id)
-    # print(gene_expression_data_table_id)
 
-    already_exists = False
+    # await asyncio.gather(
+    #     [
+    #         create_gene_metadata_table(gene_metadata_table_id),
+    #         create_sample_metadata_table(sample_metadata_table_id),
+    #         create_gene_expression_data_table(gene_expression_data_table_id),
+    #     ]
+    # )
+    print("After create tables")
 
-    # Check if entry in metadata table exists
-    result = app.fetch.database_metadata.get_datasets_metadata_by_table_name(
-        gene_metadata_table_id
-    )
-    if len(result):
-        already_exists = True
-        print("already_exists")
-        print(result)
-
-    if not table_exists(gene_metadata_table_id):
+    if not await table_exists(gene_metadata_table_id):
         await create_gene_metadata_table(gene_metadata_table_id)
 
-    if not table_exists(sample_metadata_table_id):
+    if not await table_exists(sample_metadata_table_id):
         await create_sample_metadata_table(sample_metadata_table_id)
 
-    if not table_exists(gene_expression_data_table_id):
+    if not await table_exists(gene_expression_data_table_id):
         await create_gene_expression_data_table(gene_expression_data_table_id)
 
+    print("Before gene_metadata_list")
     gene_metadata_list = list(
         csv.DictReader(codecs.iterdecode(gene_metadata_file.file, "utf-8-sig"))
     )
+    print("After gene_metadata_list")
     gene_metadata = gene_metadata_pydantic(gene_metadata_list)
     print("gene_metadata", len(gene_metadata), type(gene_metadata))
 
@@ -398,35 +463,15 @@ async def post_dataset(
     gene_expression_data = gene_expression_data_pydantic(gene_expression_data_list)
     print("gene_expression_data", len(gene_expression_data), type(gene_expression_data))
 
-    if already_exists:
-        # Delete entry in datasets_metadata table, clear tables
-        errorLog += await asyncio.gather(
-            [
-                delete_dataset_metadata(metadata),
-                delete_data_table_rows(metadata.gene_metadata_table_name),
-                delete_data_table_rows(metadata.sample_metadata_table_name),
-                delete_data_table_rows(metadata.gene_expression_data_table_name),
-            ]
-        )
-
+    print("Before final upload")
     errorLog += await asyncio.gather(
-        [
-            upload_gene_metadata_table(gene_metadata, gene_metadata_table_id),
-            upload_sample_metadata_table(sample_metadata, sample_metadata_table_id),
-            upload_gene_expression_data_table(
-                gene_expression_data, gene_expression_data_table_id
-            ),
-            post_dataset_metadata(metadata),
-        ]
+        upload_gene_metadata_table(gene_metadata, gene_metadata_table_id),
+        upload_sample_metadata_table(sample_metadata, sample_metadata_table_id),
+        upload_gene_expression_data_table(
+            gene_expression_data, gene_expression_data_table_id
+        ),
+        post_dataset_metadata(metadata),
     )
-    # errorLog += await upload_gene_metadata_table(gene_metadata, gene_metadata_table_id)
-    # errorLog += await upload_sample_metadata_table(
-    #     sample_metadata, sample_metadata_table_id
-    # )
-    # errorLog += await upload_gene_expression_data_table(
-    #     gene_expression_data, gene_expression_data_table_id
-    # )
-    # errorLog += await post_dataset_metadata(metadata)
 
     return {
         "gene_metadata_table_id": gene_metadata_table_id,
@@ -436,16 +481,11 @@ async def post_dataset(
     }
 
 
-@app.post("/login", include_in_schema=False)
-async def login(request: Request):
-    req_json = await request.json()
-    email = req_json["email"]
-    password = req_json["password"]
-    try:
-        user = pb.auth().sign_in_with_email_and_password(email, password)
-        jwt = user["idToken"]
-        return JSONResponse(content={"token": jwt}, status_code=200)
-    except:
-        return HTTPException(
-            detail={"message": "There was an error logging in"}, status_code=400
-        )
+def replace_suffix(table_name):
+    # Replace suffix, should be an integer after __
+    s = table_name.split("__")
+    num = 1
+    if len(s) == 2:
+        num = int(s[1]) + 1
+    s = s[0] + "__" + str(num)
+    return s
