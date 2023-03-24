@@ -23,7 +23,7 @@ router = APIRouter()
 # TODO: Check if user has permission first
 @router.get("/datasets_metadata/data")
 async def get_datasets_metadata(
-    authorization: str = Form(),
+    # authorization: str = Form(),
 ):
     """Returns complete list of datasets metadata describing all tables.
 
@@ -31,16 +31,18 @@ async def get_datasets_metadata(
         list: List of sample metadata JSON row objects from database
     """
     print("/datasets_metadata/data")
-    try:
-        user, user_level = app.auth.verify_user.get_user_permission(authorization)
+    return app.fetch.database_metadata.get_datasets_metadata()
 
-        return app.fetch.database_metadata.get_datasets_metadata(user_level)
+    # try:
+    #     user, user_level = app.auth.verify_user.get_user_permission(authorization)
 
-    except Exception as e:
-        print("Error", e)
-        return HTTPException(
-            detail={
-                "message": "get_datasets_metadata Error: " + str(e),
-            },
-            status_code=400,
-        )
+    #     return app.fetch.database_metadata.get_datasets_metadata(user_level)
+
+    # except Exception as e:
+    #     print("Error", e)
+    #     return HTTPException(
+    #         detail={
+    #             "message": "get_datasets_metadata Error: " + str(e),
+    #         },
+    #         status_code=400,
+    #     )

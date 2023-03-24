@@ -6,7 +6,7 @@ from fastapi.exceptions import HTTPException
 
 
 async def get_user_permission(authorization):
-    print("get_user_permission")
+    print("verify_user.get_user_permission")
     try:
         user = auth.verify_id_token(authorization)
         user_level = None

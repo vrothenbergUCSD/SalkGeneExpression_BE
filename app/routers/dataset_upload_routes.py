@@ -29,11 +29,13 @@ async def post_dataset(
     If dataset already exists, overwrites it.
 
     Args:
+        authorization (str): User authentication token from Firebase
         metadata (DatasetMetadata): _description_. Defaults to Depends(DatasetMetadata.as_form).
         gene_metadata_filename (str): _description_. Defaults to Form().
         sample_metadata_filename (str): _description_. Defaults to Form().
         gene_expression_data_filename (str): _description_. Defaults to Form().
         files (List[UploadFile]): List of CSV file objects. Defaults to File(None).
+        replace (str): Boolean value of 0 or 1
 
     Returns:
         _type_: _description_
@@ -53,10 +55,12 @@ async def post_dataset(
         user_level = "user"
         doc = fs.collection("admins").document(user["uid"]).get()
         if doc.exists:
+            print('Admin')
             user_level = "admin"
         else:
             doc = fs.collection("uploaders").document(user["uid"]).get()
             if doc.exists:
+                print('Uploader')
                 user_level = "uploader"
             else:
                 return HTTPException(
@@ -77,8 +81,11 @@ async def post_dataset(
         ][0]
         replace = bool(replace)
 
+        print('Posting')
+
         return await app.post.upload.post_dataset(
             metadata=metadata,
+            authorization=authorization,
             gene_metadata_file=gene_metadata_file,
             sample_metadata_file=sample_metadata_file,
             gene_expression_data_file=gene_expression_data_file,
@@ -122,11 +129,11 @@ async def test(request: Request):
 @router.post("/ping", include_in_schema=True)
 async def validate(
     authorization: str = Form(),
-    metadata: DatasetMetadata = Depends(DatasetMetadata.as_form),
-    gene_metadata_filename: str = Form(),
-    sample_metadata_filename: str = Form(),
-    gene_expression_data_filename: str = Form(),
-    files: List[UploadFile] = File(None),
+    # metadata: DatasetMetadata = Depends(DatasetMetadata.as_form),
+    # gene_metadata_filename: str = Form(),
+    # sample_metadata_filename: str = Form(),
+    # gene_expression_data_filename: str = Form(),
+    # files: List[UploadFile] = File(None),
 ):
     # headers = request.headers
     # jwt = headers.get("authorization")
@@ -181,9 +188,9 @@ async def validate(
             "message": "Successful",
             "uid": user["uid"],
             "user_level": user_level,
-            "gene_metadata_filename": gene_metadata_filename,
-            "sample_metadata_filename": sample_metadata_filename,
-            "gene_expression_data_filename": gene_expression_data_filename,
+            # "gene_metadata_filename": gene_metadata_filename,
+            # "sample_metadata_filename": sample_metadata_filename,
+            # "gene_expression_data_filename": gene_expression_data_filename,
             # "metadata": metadata,
         }
 

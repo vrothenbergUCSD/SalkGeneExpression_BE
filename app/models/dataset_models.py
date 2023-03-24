@@ -70,6 +70,9 @@ class DatasetMetadata(BaseModel):
     gene_metadata_table_name: str
     sample_metadata_table_name: str
     gene_expression_data_table_name: str
+    admin_groups: Union[List[str], None]
+    editor_groups: Union[List[str], None]
+    reader_groups: Union[List[str], None]
 
 
 class GeneMetadata(BaseModel):
