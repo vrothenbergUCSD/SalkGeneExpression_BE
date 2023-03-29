@@ -276,43 +276,6 @@ async def upload_gene_expression_data_table(
     return True
 
 
-async def replace_data_table_rows(table_id: str):
-    """Delete all the rows from a specified table in the database.
-    Used to clear out a table when overwriting with new data.
-
-    Args:
-        table_id (str): Table name to be cleared out from BigQuery database.
-        e.g. 'TRF_2018_Mouse_Lung_gene_expression_data_UCb0eBc2ewPjv9ipwLaEUYSwdhh1'
-
-    Returns:
-        list[str]: List of errors, if any.
-    """
-
-    print("replace_data_table_rows")
-
-    QUERY = f"""DELETE FROM `{DB}.{table_id}` WHERE true"""
-    query_job = client.query(QUERY)  # API request
-    errors = query_job.result()  # Waits for query to finish
-
-    return errors
-
-
-# TODO: Check if updating existing metadata
-# Obsolete, using Firestore with update_dataset_metadata
-async def post_dataset_metadata(metadata):
-    """Posts dataset metadata information as a single row to datasets_metadata table.
-
-    Args:
-        metadata (DatasetMetadata): DatasetMetadata pydantic object.
-          Must be converted to dict.
-
-    Returns:
-        list[str]: List of errors, if any.
-    """
-    print("upload.post_dataset_metadata")
-    table_id = f"{DB}.datasets_metadata"
-    errors = client.insert_rows_json(table_id, [metadata.dict()])
-    return errors
 
 async def create_dataset_metadata(table_name, metadata):
     """Creates dataset metadata document in datasets collection on Firestore.
@@ -325,6 +288,7 @@ async def create_dataset_metadata(table_name, metadata):
         list[str]: List of errors, if any.
     """
     try:
+        print(metadata.dict())
         fs.collection(u'datasets').document(table_name).set(metadata.dict())
     except Exception as e:
         return HTTPException(
@@ -340,9 +304,7 @@ async def create_dataset_metadata(table_name, metadata):
 
 async def update_dataset_metadata(
     doc_ref,
-    gene_metadata_table_name,
-    sample_metadata_table_name,
-    gene_expression_data_table_name,
+    metadata,
     valid=True
 ):
     """Update dataset metadata entry from datasets collection in Firestore.
@@ -356,28 +318,21 @@ async def update_dataset_metadata(
         list[str]: List of errors, if any.
     """
     print("upload.update_dataset_metadata")
-    # old_gene_metadata_table_name, new_gene_metadata_table_name = gene_metadata_table_tuple
-    # old_sample_metadata_table_name, new_sample_metadata_table_name = sample_metadata_table_tuple
-    # old_gene_expression_data_table_name, new_gene_expression_data_table_name = gene_expression_data_table_tuple
 
-   
-    # QUERY = f"""DELETE `{DB}.datasets_metadata`  
-    # WHERE gene_metadata_table_name = '{old_gene_metadata_table_name}'
-    # AND sample_metadata_table_name = '{old_sample_metadata_table_name}'
-    # AND gene_expression_data_table_name = '{old_gene_expression_data_table_name}'
-    # """
-
-    # query_job = client.query(QUERY)  # API request
-    # errors = query_job.result()  # Waits for query to finish
-
-    # return errors
     try:
         doc_ref.update({
-            u'gene_metadata_table_name': gene_metadata_table_name,
-            u'sample_metadata_table_name': sample_metadata_table_name,
-            u'gene_expression_data_table_name': gene_expression_data_table_name,
-            u'valid': valid
+            u'gene_metadata_table_name': metadata.gene_metadata_table_name,
+            u'sample_metadata_table_name': metadata.sample_metadata_table_name,
+            u'gene_expression_data_table_name': metadata.gene_expression_data_table_name,
+            u'valid': valid,
+            u'admin_groups' : metadata.admin_groups,
+            u'editor_groups': metadata.editor_groups,
+            u'reader_groups' : metadata.reader_groups,
+            u'gender': metadata.gender,
+            u'condition': metadata.condition,
+
         })
+
     except Exception as e:
         return HTTPException(
                 detail={
@@ -386,10 +341,6 @@ async def update_dataset_metadata(
                 },
                 status_code=400,
             )
-
-
-
-
 
 async def post_dataset(
     metadata,
@@ -416,6 +367,7 @@ async def post_dataset(
         dict: Dictionary of BigQuery table ids and error log.  Converted to JSON.
     """
     print("upload.post_dataset")
+    print(metadata)
     errorLog = []
     owner = metadata.owner
 
@@ -478,6 +430,11 @@ async def post_dataset(
             print("Replacing")
             # Replace table name suffixes
             doc_dict = doc.to_dict()
+
+            if doc_dict['owner'] != owner:
+                print('\nDifferent user!\n')
+
+
             old_gene_metadata_table_name = doc_dict['gene_metadata_table_name']
             metadata.gene_metadata_table_name = replace_suffix(
                 old_gene_metadata_table_name
@@ -524,11 +481,8 @@ async def post_dataset(
 
             await update_dataset_metadata(
                 doc_ref,
-                metadata.gene_metadata_table_name,
-                metadata.sample_metadata_table_name,
-                metadata.gene_expression_data_table_name
+                metadata
             )
-
 
         else:
             print("Table already exists.  Set replace to 1.")
@@ -592,7 +546,6 @@ async def post_dataset(
     print("Before final upload")
     start = time.time()
 
-
     uploadResults = []
     uploadResults += await asyncio.gather(
         upload_gene_metadata_table(gene_metadata, gene_metadata_table_id),
@@ -602,19 +555,17 @@ async def post_dataset(
         ),
     )
     end = time.time()
-    print(f'\nTime taken to upload %d (s)\n', end-start)
+    print(f"\nTime taken to upload {end-start} (s)\n")
     print('errorLog')
     print(errorLog)
     print('uploadResults')
     print(uploadResults)
     for r in uploadResults:
         if r is False:
-            print('Error on uploading.  Undo dataset metadata.')
+            print('Error on uploading.  Update dataset metadata as invalid.')
             await update_dataset_metadata(
                 doc_ref,
-                metadata.gene_metadata_table_name,
-                metadata.sample_metadata_table_name,
-                metadata.gene_expression_data_table_name,
+                metadata,
                 valid=False
             )
             return HTTPException(
@@ -630,8 +581,9 @@ async def post_dataset(
         "sample_metadata_table_id": sample_metadata_table_id,
         "gene_expression_data_table_id": gene_expression_data_table_id,
         "errorLog": [],
+        "status_code": 200,
+        "detail": "Success"
     }
-
 
 def replace_suffix(table_name):
     # Replace suffix, should be an integer after __

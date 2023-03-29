@@ -41,6 +41,7 @@ async def post_dataset(
         _type_: _description_
     """
     print("/upload/dataset: post_dataset")
+    print(metadata)
     try:
         user = auth.verify_id_token(authorization)
         if not user:

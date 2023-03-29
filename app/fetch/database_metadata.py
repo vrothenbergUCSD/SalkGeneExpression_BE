@@ -36,17 +36,16 @@ def get_datasets_metadata(
         list: List of database metadata JSON row objects from database
     """
     print('get_datasets_metadata')
-    # table = "datasets_metadata"
+    # Check user permissions
 
-    # QUERY = f"""SELECT * FROM `{db}.{table}`"""
-    # query_job = client.query(QUERY)  # API request
-    # rows = list(query_job.result())  # Waits for query to finish
-    # return rows
+    # Only show datasets 
 
     docs = fs.collection(u'datasets').stream()
     result = []
     for doc in docs:
-        result.append(doc.to_dict())
+        doc_dict = doc.to_dict()
+        if doc_dict['valid']:
+            result.append(doc_dict)
         # print(f'{doc.id} => {doc.to_dict()}')
     return result
 
@@ -59,19 +58,6 @@ def get_datasets_metadata_by_table_name(table_name):
         list: A database metadata JSON row object from database
     """
     print("get_datasets_metadata_by_table_name", table_name)
-
-    # QUERY = f"""SELECT * FROM `{db}.datasets_metadata`
-    # WHERE enabled = TRUE
-    # AND
-    # (gene_metadata_table_name = '{table_name}'
-    # OR sample_metadata_table_name = '{table_name}'
-    # OR gene_expression_data_table_name = '{table_name}')
-    # LIMIT 1"""
-    # query_job = client.query(QUERY)  # API request
-    # rows = query_job.result()  # Waits for query to finish
-    # return list(rows)
-
-    # raise NotImplementedError
 
     doc_ref = fs.collection(u'datasets').document(table_name)
 
@@ -91,3 +77,20 @@ def get_datasets_metadata_by_table_name(table_name):
     #     result.append(doc.to_dict())
     #     # print(f'{doc.id} => {doc.to_dict()}')
     # return result
+
+def get_datasets_genes(
+        # user_level: str
+        ):
+    """Returns complete list of genes.
+
+    Returns:
+        list: List of gene_id strings.
+    """
+    print('get_datasets_genes')
+    # Check user permissions
+
+    # Only show datasets 
+
+    docs = fs.collection(u'gene_list').stream()
+    gene_list = [doc.id for doc in docs]
+    return gene_list

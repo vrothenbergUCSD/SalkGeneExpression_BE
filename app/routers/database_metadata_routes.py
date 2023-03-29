@@ -46,3 +46,16 @@ async def get_datasets_metadata(
     #         },
     #         status_code=400,
     #     )
+
+
+@router.get("/datasets_metadata/genes")
+async def get_datasets_metadata_genes(
+    # authorization: str = Form(),
+):
+    """Returns complete list of datasets metadata describing all tables.
+
+    Returns:
+        list: List of sample metadata JSON row objects from database
+    """
+    print("/datasets_metadata/data")
+    return app.fetch.database_metadata.get_datasets_genes()

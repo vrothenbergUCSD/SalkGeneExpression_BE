@@ -73,6 +73,9 @@ class DatasetMetadata(BaseModel):
     admin_groups: Union[List[str], None]
     editor_groups: Union[List[str], None]
     reader_groups: Union[List[str], None]
+    gender: Union[str, None]
+    condition: Union[str, None]
+    valid: bool
 
 
 class GeneMetadata(BaseModel):
