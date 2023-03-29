@@ -107,7 +107,9 @@ class SampleMetadata(BaseModel):
     species: str
     time_point: str
     group_name: str
+    condition: str
     age_years: float
+    age_months: int
     gender: str
     tissue: str
     number_of_replicates: int
