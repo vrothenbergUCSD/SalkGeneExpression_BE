@@ -118,3 +118,28 @@ def get_sample_metadata_by_tissue(tissues: str, table: str):
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
     return list(rows)
+
+
+def get_sample_metadata_by_genders_conditions(
+    genders: str, conditions: str, table: str
+):
+    """Returns filtered list of filtered sample metadata, if gender in genders
+        and condition in conditions
+
+    Args:
+        genders (str): List of genders in string format e.g. Male,Female
+        conditions (str): List of conditions in string format e.g. ALF,TRF
+        table (str): Name of table in database
+
+    Returns:
+        list: List of sample metadata JSON row objects from database
+    """
+    gender_strs = ",".join([f"'{gender}'" for gender in genders.split(",")])
+    condition_strs = ",".join([f"'{cond}'" for cond in conditions.split(",")])
+    QUERY = f"""SELECT * FROM `{db}.{table}` 
+        WHERE gender IN ({gender_strs})
+        AND condition IN ({condition_strs})"""
+
+    query_job = client.query(QUERY)  # API request
+    rows = query_job.result()  # Waits for query to finish
+    return list(rows)

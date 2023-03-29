@@ -5,14 +5,21 @@ Upload functions
 import csv
 import codecs
 import time
+import asyncio
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from fastapi.exceptions import HTTPException
 
 from google.cloud import bigquery as bq
+
+from firebase_admin import auth
+from app.main import pb, fs
 
 from app.models.dataset_models import GeneMetadataTable
 from app.models.dataset_models import SampleMetadataTable
 from app.models.dataset_models import GeneExpressionDataTable
+
+import app.fetch.database_metadata
 
 client = bq.Client()
 
@@ -67,7 +74,7 @@ def post_gene_expression_data(file):
     return list(csvReader)
 
 
-def table_exists(table_id):
+async def table_exists(table_id):
     try:
         client.get_table(table_id)  # Make an API request.
         print("TABLE EXISTS!", table_id)
@@ -83,7 +90,7 @@ def gene_metadata_pydantic(data: GeneMetadataTable):
     return data
 
 
-def create_gene_metadata_table(table_id: str):
+async def create_gene_metadata_table(table_id: str):
     # table_id = f"{DB}.{table_name}"
     # print("table_id: ", table_id)
     print("create_gene_metadata_table")
@@ -130,26 +137,27 @@ def create_gene_metadata_table(table_id: str):
 async def upload_gene_metadata_table(data: GeneMetadataTable, table_id: str):
     print("upload_gene_metadata_table")
     chunked = list(split(data, 10000))
-    while not table_exists(table_id):
-        print("Waiting...")
-        time.sleep(1)
+    # while not await table_exists(table_id):
+    #     print("Waiting...")
+    #     time.sleep(1)
     executor = ThreadPoolExecutor(10)
     threads = []
-    errors = []
+    # errors = []
     for c in chunked:
         threads.append(executor.submit(client.insert_rows_json, table_id, c))
 
     for future in as_completed(threads):
-        errors.append(future.result())
+        if len(future.result()) > 0:
+            return False
 
-    return errors
+    return True
 
 
 def sample_metadata_pydantic(data: SampleMetadataTable):
     return data
 
 
-def create_sample_metadata_table(table_id: str):
+async def create_sample_metadata_table(table_id: str):
     # table_id = f"{DB}.{table_name}"
     print("create_sample_metadata_table")
     print(table_id)
@@ -159,7 +167,7 @@ def create_sample_metadata_table(table_id: str):
         bq.SchemaField("species", "STRING", mode="REQUIRED"),
         bq.SchemaField("time_point", "STRING", mode="REQUIRED"),
         bq.SchemaField("group_name", "STRING", mode="REQUIRED"),
-        bq.SchemaField("age_years", "FLOAT64", mode="REQUIRED"),
+        bq.SchemaField("age_months", "INT64", mode="REQUIRED"),
         bq.SchemaField("gender", "STRING", mode="REQUIRED"),
         bq.SchemaField("tissue", "STRING", mode="REQUIRED"),
         bq.SchemaField("number_of_replicates", "INT64", mode="REQUIRED"),
@@ -181,7 +189,6 @@ def create_sample_metadata_table(table_id: str):
     except Exception as error:
         print("Error on create_sample_metadata_table")
         print(error)
-        # print(Conflict)
         return False
     # errors = client.insert_rows_json(table_id, data)
     # return errors
@@ -191,20 +198,20 @@ async def upload_sample_metadata_table(data: SampleMetadataTable, table_id: str)
     print("upload_sample_metadata_table")
     print(table_id)
     chunked = list(split(data, 1000))
-    while not table_exists(table_id):
-        print("Waiting...")
-        time.sleep(1)
+    # while not table_exists(table_id):
+    #     print("Waiting...")
+    #     time.sleep(1)
     executor = ThreadPoolExecutor(5)
     threads = []
-    errors = []
     for c in chunked:
         # print(c)
         threads.append(executor.submit(client.insert_rows_json, table_id, c))
 
     for future in as_completed(threads):
-        errors.append(future.result())
+        if len(future.result()) > 0:
+            return False
 
-    return errors
+    return True
 
 
 def gene_expression_data_pydantic(data: GeneExpressionDataTable):
@@ -219,23 +226,22 @@ def gene_expression_data_pydantic(data: GeneExpressionDataTable):
     return data
 
 
-def create_gene_expression_data_table(table_id: str):
+async def create_gene_expression_data_table(table_id: str):
     print("create_gene_expression_data_table")
     print(table_id)
 
     schema = [
         bq.SchemaField("gene_id", "STRING", mode="REQUIRED"),
         bq.SchemaField("sample_name", "STRING", mode="REQUIRED"),
-        bq.SchemaField("gene_expression", "FLOAT64", mode="REQUIRED"),
+        bq.SchemaField("gene_expression", "FLOAT", mode="REQUIRED"),
     ]
 
     try:
-
         table = bq.Table(table_id, schema=schema)
         table.clustering_fields = ["gene_id", "sample_name"]
         table = client.create_table(table)  # Make an API request.
         print(
-            "Created table {}.{}.{}".format(
+            "Created table: {}.{}.{}".format(
                 table.project, table.dataset_id, table.table_id
             )
         )
@@ -252,46 +258,97 @@ async def upload_gene_expression_data_table(
     print("upload_gene_expression_data_table")
     chunked = list(split(data, 50000))
     print("chunked", len(chunked))
-    while not table_exists(table_id):
-        print("Waiting...")
-        time.sleep(1)
+    # while not table_exists(table_id):
+    #     print("Waiting...")
+    #     time.sleep(1)
     # errors = []
     # for c in chunked:
     #     errors += client.insert_rows_json(table_id, c)
 
     executor = ThreadPoolExecutor(10)
     threads = []
-    errors = []
     for c in chunked:
         threads.append(executor.submit(client.insert_rows_json, table_id, c))
 
     for future in as_completed(threads):
-        errors.append(future.result())
+        if len(future.result()) > 0:
+            return False
+    return True
 
-    return errors
 
 
-async def post_dataset_metadata(metadata):
-    """Posts dataset metadata information as a single row to datasets_metadata table.
+async def create_dataset_metadata(table_name, metadata):
+    """Creates dataset metadata document in datasets collection on Firestore.
 
     Args:
         metadata (DatasetMetadata): DatasetMetadata pydantic object.
-          Must be converted to dict.
+            Must be converted to dict
 
     Returns:
         list[str]: List of errors, if any.
     """
-    print("upload.post_dataset_metadata")
-    table_id = f"{DB}.datasets_metadata"
-    errors = client.insert_rows_json(table_id, [metadata.dict()])
-    return errors
+    try:
+        print(metadata.dict())
+        fs.collection(u'datasets').document(table_name).set(metadata.dict())
+    except Exception as e:
+        return HTTPException(
+                detail={
+                    "message": "Error on creating dataset metadata in Firestore. " + str(e),
+                    "errorLog" : ["Error on creating dataset metadata in Firestore. " + str(e)]
+                },
+                status_code=400,
+            )
 
+
+
+
+async def update_dataset_metadata(
+    doc_ref,
+    metadata,
+    valid=True
+):
+    """Update dataset metadata entry from datasets collection in Firestore.
+
+    Args:
+        old_gene_metadata_table_name (str)
+        old_sample_metadata_table_name (str)
+        old_gene_expression_data_table_name (str)
+
+    Returns:
+        list[str]: List of errors, if any.
+    """
+    print("upload.update_dataset_metadata")
+
+    try:
+        doc_ref.update({
+            u'gene_metadata_table_name': metadata.gene_metadata_table_name,
+            u'sample_metadata_table_name': metadata.sample_metadata_table_name,
+            u'gene_expression_data_table_name': metadata.gene_expression_data_table_name,
+            u'valid': valid,
+            u'admin_groups' : metadata.admin_groups,
+            u'editor_groups': metadata.editor_groups,
+            u'reader_groups' : metadata.reader_groups,
+            u'gender': metadata.gender,
+            u'condition': metadata.condition,
+
+        })
+
+    except Exception as e:
+        return HTTPException(
+                detail={
+                    "message": "Error on updating dataset metadata in Firestore. " + str(e),
+                    "errorLog" : ["Error on updating dataset metadata in Firestore. " + str(e)]
+                },
+                status_code=400,
+            )
 
 async def post_dataset(
     metadata,
+    authorization,
     gene_metadata_file,
     sample_metadata_file,
     gene_expression_data_file,
+    replace,
 ):
     """Validates gene metadata, sample metadata and gene expression data files.
     Creates tables in BigQuery for each CSV file.
@@ -301,6 +358,7 @@ async def post_dataset(
 
     Args:
         metadata (DatasetMetadata): Pydantic model of dataset metadata
+        authorization (): 
         gene_metadata_file (File): Gene metadata CSV file from FormData API request body
         sample_metadata_file (File): Sample metadata CSV file from FormData API request body
         gene_expression_data_file (File): Gene expression data CSV file from FormData API request body
@@ -309,21 +367,167 @@ async def post_dataset(
         dict: Dictionary of BigQuery table ids and error log.  Converted to JSON.
     """
     print("upload.post_dataset")
+    print(metadata)
     errorLog = []
     owner = metadata.owner
+
+    # Replace should be 0 or 1, 
+    if type(replace) != bool:
+        replace = bool(replace)
+
+    # Authenticate ID token
+    try:
+        user = auth.verify_id_token(authorization)
+        if not user:
+            print("No User")
+            return HTTPException(
+                detail={
+                    "message": "Failed token check. Invalid user. " + str(e),
+                },
+                status_code=401,
+            )
+
+        user_level = "user"
+        user_doc = fs.collection("admins").document(user["uid"]).get()
+        if user_doc.exists:
+            user_level = "admin"
+        else:
+            user_doc = fs.collection("uploaders").document(user["uid"]).get()
+            if user_doc.exists:
+                user_level = "uploader"
+            else:
+                return HTTPException(
+                    detail={
+                        "message": "Invalid token permissions. Must be an admin or uploader.",
+                    },
+                    status_code=403,
+                )
+                
+    except Exception as e:
+        print("Exception", e)
+        return HTTPException(
+            detail={
+                "message": "There was an error validating the token. " + str(e),
+            },
+            status_code=400,
+        )
+
+    print("Checking if data table exists")
+    # Check if entry in metadata table exists in Firestore 
+    # experiment_year_species_tissue 
+    table_name = f"""{metadata.experiment}_{metadata.year}_{metadata.species}_{metadata.tissue}"""
+    # print(table_name)
+    doc_ref = fs.collection(u'datasets').document(table_name)
+    # print('doc_ref', doc_ref)
+    doc = doc_ref.get()
+    # print('doc', doc)
+
+    # already_exists = len(result) > 0
+    # print("Already exists: ", already_exists)
+    if doc.exists:
+        print("Already exists")
+        if replace:
+            print("Replacing")
+            # Replace table name suffixes
+            doc_dict = doc.to_dict()
+
+            if doc_dict['owner'] != owner:
+                print('\nDifferent user!\n')
+
+
+            old_gene_metadata_table_name = doc_dict['gene_metadata_table_name']
+            metadata.gene_metadata_table_name = replace_suffix(
+                old_gene_metadata_table_name
+            )
+
+            old_sample_metadata_table_name = doc_dict['sample_metadata_table_name']
+            metadata.sample_metadata_table_name = replace_suffix(
+                old_sample_metadata_table_name
+            )
+
+            old_gene_expression_data_table_name = doc_dict['gene_expression_data_table_name']
+            metadata.gene_expression_data_table_name = replace_suffix(
+                old_gene_expression_data_table_name
+            )
+
+            # Check all valid names
+            if not (
+                metadata.gene_metadata_table_name
+                and metadata.sample_metadata_table_name
+                and metadata.gene_expression_data_table_name
+            ):
+                return HTTPException(
+                    detail={
+                        "message": "Error on table names.  If replacing, existing table must have __n suffix.",
+                        "errorLog" : ["Error on table names.  If replacing, existing table must have __n suffix."]
+                    },
+                    status_code=400,
+                )
+            
+
+            # Not necessary, using Firestore to track metadata
+            # # Delete old metadata table row
+            # errorLog += await delete_dataset_metadata(
+            #     old_gene_metadata_table_name,
+            #     old_sample_metadata_table_name,
+            #     old_gene_expression_data_table_name,
+            # )
+            # gene_metadata_table_tuple = (old_gene_metadata_table_name, 
+            #                              metadata.gene_metadata_table_name)
+            # sample_metadata_table_tuple = (old_sample_metadata_table_name, 
+            #                                metadata.sample_metadata_table_name)
+            # gene_expression_data_table_tuple = (old_gene_expression_data_table_name, 
+            #                                     metadata.gene_expression_data_table_name)
+
+            await update_dataset_metadata(
+                doc_ref,
+                metadata
+            )
+
+        else:
+            print("Table already exists.  Set replace to 1.")
+            return HTTPException(
+                detail={
+                    "message": "Table already exists. Set replace to 1.",
+                    "errorLog" : ["Table already exists. Set replace to 1."]
+                },
+                status_code=400,
+            )
+        
+    else:
+        print('Table does not exist.  Creating metadata.')
+        await create_dataset_metadata(table_name, metadata)
+
+    print("Setting table IDs")
     gene_metadata_table_id = f"{DB}.{metadata.gene_metadata_table_name}"
     sample_metadata_table_id = f"{DB}.{metadata.sample_metadata_table_name}"
     gene_expression_data_table_id = f"{DB}.{metadata.gene_expression_data_table_name}"
-    # print("owner", owner)
-    # print(gene_metadata_table_id)
-    # print(sample_metadata_table_id)
-    # print(gene_expression_data_table_id)
-    create_gene_metadata_table(gene_metadata_table_id)
-    create_sample_metadata_table(sample_metadata_table_id)
-    create_gene_expression_data_table(gene_expression_data_table_id)
+
+    # await asyncio.gather(
+    #         create_gene_metadata_table(gene_metadata_table_id),
+    #         create_sample_metadata_table(sample_metadata_table_id),
+    #         create_gene_expression_data_table(gene_expression_data_table_id)
+    # )
+    
+    gene_metadata_exists = await table_exists(gene_metadata_table_id)
+    if not gene_metadata_exists:
+        print('not exists')
+        await create_gene_metadata_table(gene_metadata_table_id)
+
+    sample_metadata_exists = await table_exists(sample_metadata_table_id)
+    if not sample_metadata_exists:
+        await create_sample_metadata_table(sample_metadata_table_id)
+
+    gene_expression_data_exists = await table_exists(gene_expression_data_table_id)
+    if not gene_expression_data_exists:
+        await create_gene_expression_data_table(gene_expression_data_table_id)
+
+    print("After create tables")
+    print("Before gene_metadata_list")
     gene_metadata_list = list(
         csv.DictReader(codecs.iterdecode(gene_metadata_file.file, "utf-8-sig"))
     )
+    print("After gene_metadata_list")
     gene_metadata = gene_metadata_pydantic(gene_metadata_list)
     print("gene_metadata", len(gene_metadata), type(gene_metadata))
 
@@ -339,18 +543,55 @@ async def post_dataset(
     gene_expression_data = gene_expression_data_pydantic(gene_expression_data_list)
     print("gene_expression_data", len(gene_expression_data), type(gene_expression_data))
 
-    errorLog += await upload_gene_metadata_table(gene_metadata, gene_metadata_table_id)
-    errorLog += await upload_sample_metadata_table(
-        sample_metadata, sample_metadata_table_id
+    print("Before final upload")
+    start = time.time()
+
+    uploadResults = []
+    uploadResults += await asyncio.gather(
+        upload_gene_metadata_table(gene_metadata, gene_metadata_table_id),
+        upload_sample_metadata_table(sample_metadata, sample_metadata_table_id),
+        upload_gene_expression_data_table(
+            gene_expression_data, gene_expression_data_table_id
+        ),
     )
-    errorLog += await upload_gene_expression_data_table(
-        gene_expression_data, gene_expression_data_table_id
-    )
-    errorLog += await post_dataset_metadata(metadata)
+    end = time.time()
+    print(f"\nTime taken to upload {end-start} (s)\n")
+    print('errorLog')
+    print(errorLog)
+    print('uploadResults')
+    print(uploadResults)
+    for r in uploadResults:
+        if r is False:
+            print('Error on uploading.  Update dataset metadata as invalid.')
+            await update_dataset_metadata(
+                doc_ref,
+                metadata,
+                valid=False
+            )
+            return HTTPException(
+                detail={
+                    "message": "Error on uploading datasets to BigQuery.",
+                    "errorLog" : ["Error on uploading datasets to BigQuery."]
+                },
+                status_code=400,
+            )
 
     return {
         "gene_metadata_table_id": gene_metadata_table_id,
         "sample_metadata_table_id": sample_metadata_table_id,
         "gene_expression_data_table_id": gene_expression_data_table_id,
-        "errorLog": errorLog,
+        "errorLog": [],
+        "status_code": 200,
+        "detail": "Success"
     }
+
+def replace_suffix(table_name):
+    # Replace suffix, should be an integer after __
+    s = table_name.split("__")
+    # Default integer suffix
+    num = 1
+    if len(s) == 2:
+        # If old table name already has an integer, increment it
+        num = int(s[1]) + 1
+    s = s[0] + "__" + str(num)
+    return s

@@ -139,3 +139,29 @@ async def get_sample_metadata_by_tissue(
         list: List of sample metadata JSON row objects from database
     """
     return app.fetch.sample_metadata.get_sample_metadata_by_tissue(tissue, table)
+
+
+@router.get("/sample_metadata/genders_conditions")
+async def get_sample_metadata_by_genders_conditions(
+    genders: str = "",
+    conditions: str = "",
+    table: str = "TRF_2018_Mouse_EWAT_gene_expression_data_UCb0eBc2ewPjv9ipwLaEUYSwdhh1",
+):
+    """Returns filtered list of gene expression data based on:
+        gene_expression_data table gene_id in gene_names,
+        sample_metadata table gender in genders,
+        sample_metadata table group_name in conditions,
+
+    Args:
+        genders (str, optional): List of genders in string format
+            e.g. Male,Female
+        conditions (str, optional): List of group names in string format
+            e.g. ALF,TRF
+        table (str): Name of table in database
+
+    Returns:
+        list: List of gene expression JSON row objects from database
+    """
+    return app.fetch.sample_metadata.get_sample_metadata_by_genders_conditions(
+        genders, conditions, table
+    )

@@ -70,6 +70,12 @@ class DatasetMetadata(BaseModel):
     gene_metadata_table_name: str
     sample_metadata_table_name: str
     gene_expression_data_table_name: str
+    admin_groups: Union[List[str], None]
+    editor_groups: Union[List[str], None]
+    reader_groups: Union[List[str], None]
+    gender: Union[str, None]
+    condition: Union[str, None]
+    valid: bool
 
 
 class GeneMetadata(BaseModel):
@@ -101,7 +107,9 @@ class SampleMetadata(BaseModel):
     species: str
     time_point: str
     group_name: str
+    condition: str
     age_years: float
+    age_months: int
     gender: str
     tissue: str
     number_of_replicates: int

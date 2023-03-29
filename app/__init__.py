@@ -2,3 +2,4 @@
 import app.fetch
 import app.post
 import app.models
+import app.auth
