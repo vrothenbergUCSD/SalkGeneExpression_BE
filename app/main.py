@@ -13,34 +13,34 @@ import json
 
 from firebase_admin import credentials, firestore
 
-from google.cloud import secretmanager
+# from google.cloud import secretmanager
 
-# Create a client to access the Secrets Manager
-client = secretmanager.SecretManagerServiceClient()
+# # Create a client to access the Secrets Manager
+# client = secretmanager.SecretManagerServiceClient()
 
-# Define the name of the secret containing the JSON file
-firebase_service_account = "firebase-service_account_keys"
+# # Define the name of the secret containing the JSON file
+# firebase_service_account = "firebase-service_account_keys"
 
-firebase_config = "firebase_config"
+# firebase_config = "firebase_config"
 
-project_id = "rbio-p-datasharing"
+# project_id = "rbio-p-datasharing"
 
-# Access the secret
-response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_service_account}/versions/latest"})
+# # Access the secret
+# response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_service_account}/versions/latest"})
 
-# Get the payload (the secret's content)
-firebase_service_account_payload = response.payload.data.decode("UTF-8")
+# # Get the payload (the secret's content)
+# firebase_service_account_payload = response.payload.data.decode("UTF-8")
 
-# Access the secret
-response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_config}/versions/latest"})
+# # Access the secret
+# response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_config}/versions/latest"})
 
-# Get the payload (the secret's content)
-firebase_config_payload = response.payload.data.decode("UTF-8")
+# # Get the payload (the secret's content)
+# firebase_config_payload = response.payload.data.decode("UTF-8")
 
 
-cred = credentials.Certificate(firebase_service_account_payload)
+cred = credentials.Certificate("/firebase-service_account_keys.json")
 firebase = firebase_admin.initialize_app(cred)
-pb = pyrebase.initialize_app(json.load(firebase_config_payload))
+pb = pyrebase.initialize_app(json.load("/firebase_config.json"))
 fs = firestore.client()
 
 from app.routers import (
