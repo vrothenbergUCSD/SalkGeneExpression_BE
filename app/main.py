@@ -10,6 +10,7 @@ import uvicorn
 import firebase_admin
 import pyrebase
 import json
+import os 
 
 from firebase_admin import credentials, firestore
 
@@ -36,11 +37,32 @@ from firebase_admin import credentials, firestore
 
 # # Get the payload (the secret's content)
 # firebase_config_payload = response.payload.data.decode("UTF-8")
+try:
+    print("Trying to open mounted volume /firebase-service_account_keys.json")
+    with open('/firebase-service_account_keys.json') as f:
+        firebase_service_keys = json.load(f)
+        cred = credentials.Certificate(firebase_service_keys)
+except Exception as e:
+    print(e)
+    print("Exception.  Now trying environment variable FIREBASE_SERVICE_KEYS")
+    firebase_service_keys_str = os.environ.get('FIREBASE_SERVICE_KEYS')
+    firebase_service_keys = json.loads(firebase_service_keys_str)
+    cred = credentials.Certificate(firebase_service_keys)
 
-
-cred = credentials.Certificate("/firebase-service_account_keys.json")
+# cred = credentials.Certificate("/firebase-service_account_keys.json")
 firebase = firebase_admin.initialize_app(cred)
-pb = pyrebase.initialize_app(json.load("/firebase_config.json"))
+
+try:
+    print("Trying to open mounted volume /firebase_config.json")
+    with open('/firebase_config.json') as f:
+        firebase_config = json.load(f)
+except Exception as e:
+    print(e)
+    print("Exception. Now trying environment variable FIREBASE_CONFIG")
+    firebase_config_str = os.environ.get('FIREBASE_CONFIG')
+    firebase_config = json.loads(firebase_config_str)
+
+pb = pyrebase.initialize_app(firebase_config)
 fs = firestore.client()
 
 from app.routers import (
