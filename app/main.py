@@ -13,14 +13,34 @@ import json
 
 from firebase_admin import credentials, firestore
 
-# from fastapi_utils.timing import add_timing_middleware
+from google.cloud import secretmanager
 
-# logging.basicConfig(level=logging.INFO)
-# logger = logging.getLogger(__name__)
+# Create a client to access the Secrets Manager
+client = secretmanager.SecretManagerServiceClient()
 
-cred = credentials.Certificate("rbio-p-datasharing-firebase-service_account_keys.json")
+# Define the name of the secret containing the JSON file
+firebase_service_account = "firebase-service_account_keys"
+
+firebase_config = "firebase_config"
+
+project_id = "rbio-p-datasharing"
+
+# Access the secret
+response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_service_account}/versions/latest"})
+
+# Get the payload (the secret's content)
+firebase_service_account_payload = response.payload.data.decode("UTF-8")
+
+# Access the secret
+response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_config}/versions/latest"})
+
+# Get the payload (the secret's content)
+firebase_config_payload = response.payload.data.decode("UTF-8")
+
+
+cred = credentials.Certificate(firebase_service_account_payload)
 firebase = firebase_admin.initialize_app(cred)
-pb = pyrebase.initialize_app(json.load(open("firebase_config.json")))
+pb = pyrebase.initialize_app(json.load(firebase_config_payload))
 fs = firestore.client()
 
 from app.routers import (
