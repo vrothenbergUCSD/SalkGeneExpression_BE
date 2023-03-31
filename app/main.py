@@ -47,6 +47,7 @@ except Exception as e:
     print("Exception.  Now trying environment variable FIREBASE_SERVICE_KEYS")
     firebase_service_keys_str = os.environ.get('FIREBASE_SERVICE_KEYS')
     firebase_service_keys = json.loads(firebase_service_keys_str)
+    print(firebase_service_keys)
     cred = credentials.Certificate(firebase_service_keys)
 
 # cred = credentials.Certificate("/firebase-service_account_keys.json")
@@ -61,6 +62,7 @@ except Exception as e:
     print("Exception. Now trying environment variable FIREBASE_CONFIG")
     firebase_config_str = os.environ.get('FIREBASE_CONFIG')
     firebase_config = json.loads(firebase_config_str)
+    print(firebase_config)
 
 pb = pyrebase.initialize_app(firebase_config)
 fs = firestore.client()

@@ -5,18 +5,17 @@ client = bigquery.Client()
 db = "rbio-p-datasharing.gene_expression_database"
 
 
-def get_sample_metadata(limit: int, table: str):
+def get_sample_metadata(table: str):
     """Returns unfiltered list of sample metadata.
 
     Args:
-        limit (int): Maximum number of rows to return
         table (str): Name of table in database
         db (Session): Session instance of database
 
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    QUERY = f"SELECT * FROM `{db}.{table}` LIMIT {limit}"
+    QUERY = f"SELECT * FROM `{db}.{table}`"
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
     return list(rows)

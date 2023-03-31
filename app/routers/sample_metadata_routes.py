@@ -7,15 +7,12 @@ router = APIRouter()
 
 @router.get("/sample_metadata/data")
 async def get_sample_metadata(
-    limit: int = 100,
     table: str = "Mouse_TRF_2018_Liver_sample_metadata",
     # db: Session = Depends(get_db),
 ):
     """Returns unfiltered list of sample metadata.
 
     Args:
-        limit (int, optional): Maximum number of rows to return.
-            Defaults to 100.
         table (str, optional): Name of table in database.
             Defaults to 'Mouse_TRF_2018_Liver_sample_metadata'.
         db (Session, optional): Session instance of database.
@@ -24,7 +21,7 @@ async def get_sample_metadata(
     Returns:
         list: List of sample metadata JSON row objects from database
     """
-    return app.fetch.sample_metadata.get_sample_metadata(limit, table)
+    return app.fetch.sample_metadata.get_sample_metadata(table)
 
 
 @router.get("/sample_metadata/sample_name")
