@@ -4,9 +4,9 @@ from fastapi.exceptions import HTTPException
 
 from firebase_admin import auth
 
-import app.fetch.database_metadata
-import app.auth.verify_user
+from app.main import pb, fs
 
+import app.fetch.database_metadata
 
 router = APIRouter()
 
@@ -20,18 +20,27 @@ router = APIRouter()
 #     """
 #     return app.fetch.database_metadata.get_database_metadata()
 
+
+        
+
 # TODO: Check if user has permission first
-@router.get("/datasets_metadata/data")
+@router.post("/datasets_metadata/data")
 async def get_datasets_metadata(
-    # authorization: str = Form(),
+    authorization: str = Form()
 ):
-    """Returns complete list of datasets metadata describing all tables.
+    """Returns complete list of datasets metadata describing all tables, depending upon user permissions.
 
     Returns:
         list: List of sample metadata JSON row objects from database
     """
     print("/datasets_metadata/data")
-    return app.fetch.database_metadata.get_datasets_metadata()
+    # print(authorization)
+    # user_level = app.auth.verify_user.get_user_level(authorization)
+
+    return await app.fetch.database_metadata.get_datasets_metadata(authorization)
+
+
+    
 
     # try:
     #     user, user_level = app.auth.verify_user.get_user_permission(authorization)

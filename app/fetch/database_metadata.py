@@ -11,42 +11,44 @@ from firebase_admin import auth
 
 from app.main import pb, fs
 
-
-# def get_database_metadata():
-#     """Returns complete list of database metadata describing each table.
-
-#     Returns:
-#         list: List of database metadata JSON row objects from database
-#     """
-#     table = "database_metadata"
-
-#     QUERY = f"SELECT * FROM `{db}.{table}`"
-#     query_job = client.query(QUERY)  # API request
-#     rows = query_job.result()  # Waits for query to finish
-#     return list(rows)
-
+import app.auth.verify_user 
 
 # TODO: Only return datasets user has permission to view.
-def get_datasets_metadata(
-        # user_level: str
+async def get_datasets_metadata(
+        authorization: str = Form()
         ):
-    """Returns complete list of datasets metadata describing each table.
+    """Returns list of datasets metadata describing each table dependent upon user level permissions.
 
     Returns:
         list: List of database metadata JSON row objects from database
     """
     print('get_datasets_metadata')
-    # Check user permissions
-
-    # Only show datasets 
-
     docs = fs.collection(u'datasets').stream()
     result = []
-    for doc in docs:
-        doc_dict = doc.to_dict()
-        if doc_dict['valid']:
-            result.append(doc_dict)
-        # print(f'{doc.id} => {doc.to_dict()}')
+    user_level, uid = await app.auth.verify_user.get_user_level(authorization)
+    print('user_level', user_level)
+    print('uid', uid)
+
+    permission_groups = fs.collection("permission_groups").stream()
+    groups = {group.id : group.to_dict() for group in permission_groups}
+
+    # Check user permissions
+    # TODO: More granular permissions 
+    if user_level in ["admin"]:
+        # Access to all datasets
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            if doc_dict['valid']:
+                result.append(doc_dict)
+        
+    else: 
+        # Access to only permitted datasets
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            permitted = app.auth.verify_user.get_user_read_permission(uid, doc_dict, groups)
+            if permitted and doc_dict['valid']:
+                result.append(doc_dict)
+
     return result
 
 

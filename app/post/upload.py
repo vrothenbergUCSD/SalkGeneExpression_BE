@@ -318,6 +318,14 @@ async def update_dataset_metadata(
         list[str]: List of errors, if any.
     """
     print("upload.update_dataset_metadata")
+    if metadata.admin_groups is None:
+        metadata.admin_groups = []
+    if metadata.editor_groups is None:
+        metadata.editor_groups = []
+    if metadata.reader_groups is None:
+        metadata.reader_groups = []
+    if metadata.doi == "null":
+        metadata.doi = ""
 
     try:
         doc_ref.update({
@@ -330,6 +338,7 @@ async def update_dataset_metadata(
             u'reader_groups' : metadata.reader_groups,
             u'gender': metadata.gender,
             u'condition': metadata.condition,
+            u'id': doc_ref.id
 
         })
 

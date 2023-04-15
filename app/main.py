@@ -14,58 +14,44 @@ import os
 
 from firebase_admin import credentials, firestore
 
-# from google.cloud import secretmanager
+# Change to False when uploading to repo
+development = True
 
-# # Create a client to access the Secrets Manager
-# client = secretmanager.SecretManagerServiceClient()
+if development:
+    cred = credentials.Certificate("rbio-p-datasharing-firebase-service_account_keys.json")
+    firebase = firebase_admin.initialize_app(cred)
+    pb = pyrebase.initialize_app(json.load(open("firebase_config.json")))
+    fs = firestore.client()
 
-# # Define the name of the secret containing the JSON file
-# firebase_service_account = "firebase-service_account_keys"
-
-# firebase_config = "firebase_config"
-
-# project_id = "rbio-p-datasharing"
-
-# # Access the secret
-# response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_service_account}/versions/latest"})
-
-# # Get the payload (the secret's content)
-# firebase_service_account_payload = response.payload.data.decode("UTF-8")
-
-# # Access the secret
-# response = client.access_secret_version(request={"name": f"projects/{project_id}/secrets/{firebase_config}/versions/latest"})
-
-# # Get the payload (the secret's content)
-# firebase_config_payload = response.payload.data.decode("UTF-8")
-try:
-    print("Trying to open mounted volume /firebase-service_account_keys.json")
-    with open('/firebase-service_account_keys.json') as f:
-        firebase_service_keys = json.load(f)
+else:
+    try:
+        print("Trying to open mounted volume /firebase-service_account_keys.json")
+        with open('/firebase-service_account_keys.json') as f:
+            firebase_service_keys = json.load(f)
+            cred = credentials.Certificate(firebase_service_keys)
+    except Exception as e:
+        print(e)
+        print("Exception.  Now trying environment variable FIREBASE_SERVICE_KEYS")
+        firebase_service_keys_str = os.environ.get('FIREBASE_SERVICE_KEYS')
+        firebase_service_keys = json.loads(firebase_service_keys_str)
+        print(firebase_service_keys)
         cred = credentials.Certificate(firebase_service_keys)
-except Exception as e:
-    print(e)
-    print("Exception.  Now trying environment variable FIREBASE_SERVICE_KEYS")
-    firebase_service_keys_str = os.environ.get('FIREBASE_SERVICE_KEYS')
-    firebase_service_keys = json.loads(firebase_service_keys_str)
-    print(firebase_service_keys)
-    cred = credentials.Certificate(firebase_service_keys)
 
-# cred = credentials.Certificate("/firebase-service_account_keys.json")
-firebase = firebase_admin.initialize_app(cred)
+    firebase = firebase_admin.initialize_app(cred)
 
-try:
-    print("Trying to open mounted volume /firebase_config.json")
-    with open('/firebase_config.json') as f:
-        firebase_config = json.load(f)
-except Exception as e:
-    print(e)
-    print("Exception. Now trying environment variable FIREBASE_CONFIG")
-    firebase_config_str = os.environ.get('FIREBASE_CONFIG')
-    firebase_config = json.loads(firebase_config_str)
-    print(firebase_config)
+    try:
+        print("Trying to open mounted volume /firebase_config.json")
+        with open('/firebase_config.json') as f:
+            firebase_config = json.load(f)
+    except Exception as e:
+        print(e)
+        print("Exception. Now trying environment variable FIREBASE_CONFIG")
+        firebase_config_str = os.environ.get('FIREBASE_CONFIG')
+        firebase_config = json.loads(firebase_config_str)
+        print(firebase_config)
 
-pb = pyrebase.initialize_app(firebase_config)
-fs = firestore.client()
+    pb = pyrebase.initialize_app(firebase_config)
+    fs = firestore.client()
 
 from app.routers import (
     gene_expression_routes,
