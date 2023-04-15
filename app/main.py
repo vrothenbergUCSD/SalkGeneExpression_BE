@@ -15,7 +15,7 @@ import os
 from firebase_admin import credentials, firestore
 
 # Change to False when uploading to repo
-development = True
+development = False
 
 if development:
     cred = credentials.Certificate("rbio-p-datasharing-firebase-service_account_keys.json")
