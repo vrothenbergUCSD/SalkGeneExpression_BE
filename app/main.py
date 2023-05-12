@@ -14,16 +14,19 @@ import os
 
 from firebase_admin import credentials, firestore
 
-# Change to False when uploading to repo
-development = False
+
+# Check if running in development mode
+development = True
 
 if development:
+    print('Development mode')
     cred = credentials.Certificate("rbio-p-datasharing-firebase-service_account_keys.json")
     firebase = firebase_admin.initialize_app(cred)
     pb = pyrebase.initialize_app(json.load(open("firebase_config.json")))
     fs = firestore.client()
 
 else:
+    print('Production mode')
     try:
         print("Trying to open mounted volume /firebase-service_account_keys.json")
         with open('/firebase-service_account_keys.json') as f:
@@ -72,7 +75,7 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    # allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
