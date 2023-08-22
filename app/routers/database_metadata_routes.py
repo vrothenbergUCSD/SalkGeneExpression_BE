@@ -40,8 +40,6 @@ async def get_datasets_metadata(
     return await app.fetch.database_metadata.get_datasets_metadata(authorization)
 
 
-    
-
     # try:
     #     user, user_level = app.auth.verify_user.get_user_permission(authorization)
 

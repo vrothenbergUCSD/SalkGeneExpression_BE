@@ -14,7 +14,6 @@ import os
 
 from firebase_admin import credentials, firestore
 
-
 # Check if running in development mode
 development = False
 

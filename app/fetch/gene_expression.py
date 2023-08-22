@@ -1,5 +1,6 @@
 # from sqlalchemy.orm import Session
 from google.cloud import bigquery
+from firebase_admin import credentials, firestore
 
 client = bigquery.Client()
 
