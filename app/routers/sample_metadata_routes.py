@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 import app.fetch.sample_metadata
 
+
 router = APIRouter()
 
 
@@ -22,6 +23,25 @@ async def get_sample_metadata(
         list: List of sample metadata JSON row objects from database
     """
     return app.fetch.sample_metadata.get_sample_metadata(table)
+
+
+@router.get("/sample_metadata/data_fs")
+async def get_sample_metadata_fs(
+    table: str = "TRF Experiment 2018_adrenal_sample",
+    # db: Session = Depends(get_db),
+):
+    """Returns unfiltered list of sample metadata.
+
+    Args:
+        table (str, optional): Name of table in database.
+            Defaults to 'Mouse_TRF_2018_Liver_sample_metadata'.
+        db (Session, optional): Session instance of database.
+            Defaults to Depends(get_db).
+
+    Returns:
+        list: List of sample metadata JSON row objects from database
+    """
+    return app.fetch.sample_metadata.get_sample_metadata_fs(table)
 
 
 @router.get("/sample_metadata/sample_name")

@@ -1,4 +1,5 @@
 from google.cloud import bigquery
+from app.main import fs
 
 client = bigquery.Client()
 
@@ -19,6 +20,31 @@ def get_sample_metadata(table: str):
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
     return list(rows)
+
+
+def get_sample_metadata_fs(table:str):
+    """Returns unfiltered list of sample metadata from Firestore.
+
+    Args:
+        experiment_id (str): Name of experiment document in experiments collection
+        tissue_id (str): Name of tissue document in tissues collection
+
+    Returns:
+        list: List of sample metadata JSON row objects from database
+    """
+
+    experiment_id, tissue_id, data_type = table.split('_')
+
+    sample_metadata_ref = (
+        fs.collection(u'experiments').document(experiment_id)
+        .collection(u'tissues').document(tissue_id)
+        .collection(u'sample_metadata')
+        )
+    
+    sample_metadata_docs = sample_metadata_ref.stream()
+    sample_metadata_list = [doc.to_dict() for doc in sample_metadata_docs]
+    return sample_metadata_list
+
 
 
 def get_sample_metadata_by_sample_name(sample_names: str, table: str):

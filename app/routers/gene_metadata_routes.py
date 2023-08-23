@@ -23,6 +23,20 @@ async def get_gene_metadata_all_names(
     """
     return app.fetch.gene_metadata.get_gene_metadata_all_names(table)
 
+@router.get("/gene_metadata/all_names_fs")
+async def get_gene_metadata_all_names_fs(
+    table: str = "Mouse_TRF_2018_Liver_gene_metadata"
+):
+    """Returns unfiltered list of gene names.
+
+    Args:
+        table (str, optional): _description_. Defaults to "Mouse_TRF_2018_Liver_gene_metadata".
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+    return app.fetch.gene_metadata.get_gene_metadata_all_names_fs(table)
+
 
 @router.get("/gene_metadata/data")
 async def get_gene_metadata(
@@ -59,6 +73,26 @@ async def get_gene_metadata_by_gene_name(
         list: List of gene metadata JSON row objects from database
     """
     return app.fetch.gene_metadata.get_gene_metadata_by_gene_name(gene_name, table)
+
+
+@router.get("/gene_metadata/gene_name_fs")
+async def get_gene_metadata_by_gene_name_fs(
+    gene_name: str,
+    table: str = "Mouse_TRF_2018_Liver_gene_metadata",
+):
+    """Returns filtered list of gene metadata, if gene_name in gene_names.
+
+    Args:
+        gene_name (str): List of gene names in string format e.g. Alb,Serpina3k
+        table (str, optional): Name of table in database.
+            Defaults to 'Mouse_TRF_2018_Liver_gene_metadata'.
+        db (Session, optional): Session instance of database.
+            Defaults to Depends(get_db).
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+    return app.fetch.gene_metadata.get_gene_metadata_by_gene_name_fs(gene_name, table)
 
 
 @router.get("/gene_metadata/gene_id")

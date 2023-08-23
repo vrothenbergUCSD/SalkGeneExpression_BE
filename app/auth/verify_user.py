@@ -11,11 +11,11 @@ def get_user_read_permission(user_id: str,
                                 dataset: dict,
                                 groups: dict):
     print('get_user_read_permission', user_id)
-    print('dataset', dataset)
+    # print('dataset', dataset)
     if dataset is None:
         return False
     
-    print('groups', groups)
+    # print('groups', groups)
     # permission_groups = fs.collection("permission_groups").stream()
     # groups = {group.id : group.to_dict() for group in permission_groups}
     if user_id is None:

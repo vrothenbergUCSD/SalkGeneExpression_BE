@@ -3,6 +3,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+# from starlette.requests import Request
+import time
+from datetime import datetime
 
 
 # Authentication between FastAPI and Firebase
@@ -15,7 +19,7 @@ import os
 from firebase_admin import credentials, firestore
 
 # Check if running in development mode
-development = False
+development = True
 
 if development:
     print('Development mode')
@@ -71,6 +75,16 @@ origins = [
     #     "*.rbio-p-datasharing.web.app",
 ]
 
+class TimingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        print(f"{timestamp} - Processing time: {process_time} secs")
+        return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -78,6 +92,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(TimingMiddleware)
 
 # add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
