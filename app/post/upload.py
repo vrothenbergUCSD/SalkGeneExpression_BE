@@ -329,16 +329,16 @@ async def update_dataset_metadata(
 
     try:
         doc_ref.update({
-            u'gene_metadata_table_name': metadata.gene_metadata_table_name,
-            u'sample_metadata_table_name': metadata.sample_metadata_table_name,
-            u'gene_expression_data_table_name': metadata.gene_expression_data_table_name,
-            u'valid': valid,
-            u'admin_groups' : metadata.admin_groups,
-            u'editor_groups': metadata.editor_groups,
-            u'reader_groups' : metadata.reader_groups,
-            u'gender': metadata.gender,
-            u'condition': metadata.condition,
-            u'id': doc_ref.id
+            'gene_metadata_table_name': metadata.gene_metadata_table_name,
+            'sample_metadata_table_name': metadata.sample_metadata_table_name,
+            'gene_expression_data_table_name': metadata.gene_expression_data_table_name,
+            'valid': valid,
+            'admin_groups' : metadata.admin_groups,
+            'editor_groups': metadata.editor_groups,
+            'reader_groups' : metadata.reader_groups,
+            'gender': metadata.gender,
+            'condition': metadata.condition,
+            'id': doc_ref.id
 
         })
 

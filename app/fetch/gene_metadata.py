@@ -1,5 +1,6 @@
 # from sqlalchemy.orm import Session
 from google.cloud import bigquery
+from app.main import fs
 
 client = bigquery.Client()
 
@@ -37,6 +38,25 @@ def get_gene_metadata_all_names(table: str):
     rows = query_job.result()  # Waits for query to finish
     return list(rows)
 
+def get_gene_metadata_all_names_fs(table: str):
+    """Returns unfiltered list of gene names only.
+
+    Args:
+        table (str): Table in format 'ExperimentID_TissueID_DataType'
+
+    Returns:
+        list: List of gene IDs from Firestore
+    """
+    experiment_id, tissue_id, data_type = table.split('_')
+    tissue_ref = (
+        fs.collection(u'experiments').document(experiment_id)
+        .collection(u'tissues').document(tissue_id)
+        )
+    
+    gene_ids = tissue_ref.get().to_dict()['gene_names']
+    
+    return gene_ids
+
 
 def get_gene_metadata_by_gene_name(gene_names: str, table: str):
     """Returns filtered list of gene metadata, if gene_name in gene_names.
@@ -57,6 +77,36 @@ def get_gene_metadata_by_gene_name(gene_names: str, table: str):
     return list(rows)
 
 
+def get_gene_metadata_by_gene_name_fs(gene_names: str, table: str):
+    """Returns filtered list of gene metadata, if gene_name in gene_names.
+
+    Args:
+        gene_names (str): List of gene names in string format e.g. Alb,Serpina3k
+        table (str): Table in format 'ExperimentID_TissueID_DataType'
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+    gene_names_list = gene_names.split(',')
+    experiment_id, tissue_id, data_type = table.split('_')
+    gene_metadata_ref = (
+        fs.collection(u'experiments').document(experiment_id)
+        .collection(u'tissues').document(tissue_id)
+        .collection(u'gene_expression')
+        )
+    
+    # Get the gene metadata documents that match the provided gene names
+    gene_metadata_list = []
+    for gene_name in gene_names_list:
+        doc_ref = gene_metadata_ref.document(gene_name)
+        doc = doc_ref.get()
+        if doc.exists:
+            gene_metadata_list.append(doc.to_dict())
+    
+    # gene_ids = [doc.id for doc in gene_metadata_ref.stream()]
+    return gene_metadata_list
+
+
 def get_gene_metadata_by_gene_id(gene_ids: str, table: str):
     """Returns filtered list of gene metadata, if gene_id in gene_ids.
 
@@ -74,6 +124,36 @@ def get_gene_metadata_by_gene_id(gene_ids: str, table: str):
     query_job = client.query(QUERY)
     rows = query_job.result()
     return list(rows)
+
+
+def get_gene_metadata_by_gene_id_fs(gene_names: str, table: str):
+    """Returns filtered list of gene metadata, if gene_name in gene_names.
+
+    Args:
+        gene_names (str): List of gene names in string format e.g. Alb,Serpina3k
+        table (str): Table in format 'ExperimentID_TissueID_DataType'
+
+    Returns:
+        list: List of gene metadata JSON row objects from database
+    """
+    gene_names_list = gene_names.split(',')
+    experiment_id, tissue_id, data_type = table.split('_')
+    gene_metadata_ref = (
+        fs.collection(u'experiments').document(experiment_id)
+        .collection(u'tissues').document(tissue_id)
+        .collection(u'gene_expression')
+        )
+    
+    # Get the gene metadata documents that match the provided gene names
+    gene_metadata_list = []
+    for gene_name in gene_names_list:
+        doc_ref = gene_metadata_ref.document(gene_name)
+        doc = doc_ref.get()
+        if doc.exists:
+            gene_metadata_list.append(doc.to_dict())
+    
+    # gene_ids = [doc.id for doc in gene_metadata_ref.stream()]
+    return gene_metadata_list
 
 
 def get_gene_metadata_by_chr(chrs: str, table: str):

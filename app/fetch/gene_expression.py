@@ -1,5 +1,7 @@
 # from sqlalchemy.orm import Session
 from google.cloud import bigquery
+from firebase_admin import credentials, firestore
+from app.main import fs
 
 client = bigquery.Client()
 
@@ -49,6 +51,43 @@ def get_gene_expression_data_by_gene_names(gene_names: str, table: str):
     query_job = client.query(QUERY)  # API request
     rows = query_job.result()  # Waits for query to finish
     return list(rows)
+
+
+def get_gene_expression_data_by_gene_names_fs(gene_names: str, table: str):
+    """Returns filtered list of gene expression data, if gene_name in gene_names.
+
+    Args:
+        gene_names (str): List of gene names in string format
+            e.g. Alb,Serpina3k
+        table (str): Name of table in database
+
+    Returns:
+        list: List of gene expression JSON row objects from database
+    """
+    gene_names_list = gene_names.split(",")
+    experiment_id, tissue_id, data_type = table.split('_')
+    gene_expression_ref = (
+        fs.collection(u'experiments').document(experiment_id)
+        .collection(u'tissues').document(tissue_id)
+        .collection(u'gene_expression')
+        )
+    
+    # Get the gene expression documents that match the provided gene names
+    gene_expression_data = []
+    for gene_name in gene_names_list:
+        doc_ref = gene_expression_ref.document(gene_name)
+        doc = doc_ref.get()
+        if doc.exists:
+            doc_data = doc.to_dict()
+            sample_names = doc_data['sample_name']
+            gene_expressions = doc_data['gene_expression']
+            for sample_name, gene_expression in zip(sample_names, gene_expressions):
+                gene_expression_data.append({
+                    'gene_id': gene_name,
+                    'sample_name': sample_name,
+                    'gene_expression': gene_expression
+                })
+    return gene_expression_data
 
 
 def get_gene_expression_data_by_gene_id(gene_id: str, table: str):

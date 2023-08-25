@@ -71,6 +71,26 @@ async def get_gene_expression_data_by_gene_names(
     )
 
 
+@router.get("/gene_expression/gene_names_fs")
+async def get_gene_expression_data_by_gene_names_fs(
+    gene_names: str,
+    table: str = "TRF Experiment 2018_adrenal_expression",
+):
+    """Returns filtered list of gene expression data, if gene_name in gene_names.
+
+    Args:
+        gene_name (str): List of gene names in string format e.g. Alb,Serpina3k
+        table (str, optional): Name of table in database.
+            Defaults to 'TRF Experiment 2018_adrenal_expression'.
+
+    Returns:
+        list: List of gene expression JSON row objects from database
+    """
+    return app.fetch.gene_expression.get_gene_expression_data_by_gene_names_fs(
+        gene_names, table
+    )
+
+
 @router.get("/gene_expression/gene_id")
 async def get_gene_expression_data_by_gene_id(
     gene_id: str,
