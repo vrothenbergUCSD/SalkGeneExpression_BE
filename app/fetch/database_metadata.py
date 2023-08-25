@@ -68,6 +68,10 @@ async def process_experiment(experiment, user_level, uid, groups):
     for tissue_metadata in tissues_metadata:
         tissue_metadata['condition'] = json.dumps(tissue_metadata['condition'])
         tissue_metadata['gender'] = json.dumps(tissue_metadata['gender'])
+        tissue_metadata['reader_groups'] = experiment_dict['reader_groups']
+        tissue_metadata['editor_groups'] = experiment_dict['editor_groups']
+        tissue_metadata['admin_groups'] = experiment_dict['admin_groups']
+        tissue_metadata['owner'] = experiment_dict['owner']
 
     # print('process_experiment finished', experiment_name)
 
