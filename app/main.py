@@ -19,7 +19,7 @@ import os
 from firebase_admin import credentials, firestore
 
 # Check if running in development mode
-development = True
+development = False
 
 if development:
     print('Development mode')
